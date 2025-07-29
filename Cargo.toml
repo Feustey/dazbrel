@@ -1,0 +1,61 @@
+[package]
+name = "dazno-umbrel"
+version = "1.0.0"
+edition = "2021"
+
+[lib]
+name = "dazno_umbrel"
+path = "src/lib.rs"
+
+[dependencies]
+# Core async runtime
+tokio = { version = "1.0", features = ["full"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# HTTP client/server
+reqwest = { version = "0.11", features = ["json"] }
+axum = { version = "0.7", features = ["ws"] }
+
+# Lightning Network dependencies
+tonic_lnd = "0.5"
+lightning = "0.0.118"
+bitcoin = "0.31"
+
+# Database
+sqlx = { version = "0.7", features = ["sqlite", "runtime-tokio-rustls", "chrono", "uuid"] }
+
+# Utilities
+uuid = { version = "1.0", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+hex = "0.4"
+base64 = "0.22"
+
+# Configuration et logging
+config = "0.13"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Templates et static files
+handlebars = "4.0"
+tower-http = { version = "0.4", features = ["fs", "trace"] }
+tower = "0.4"
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# WebSocket support
+tokio-tungstenite = "0.20"
+futures-util = "0.3"
+rand = "0.8"
+
+[dev-dependencies]
+tokio-test = "0.4"
+mockito = "1.4"
+wiremock = "0.6"
+serde_json = "1.0"
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1.0", features = ["v4"] }

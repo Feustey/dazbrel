@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dazno - Action History</title>
+    <link rel="stylesheet" href="/static/css/dazno-theme.css">
+    <script src="/static/js/history.js"></script>
+</head>
+<body>
+    <div class="dazno-container">
+        <header class="dazno-header">
+            <h1>Action History</h1>
+            <div class="status-indicator {{connection_status}}"></div>
+        </header>
+        
+        <main class="history-main">
+            <div class="history-stats">
+                <div class="stat-card">
+                    <span class="stat-label">Total Actions</span>
+                    <span class="stat-value">{{total_actions}}</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Successful</span>
+                    <span class="stat-value success">{{successful_actions}}</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Failed</span>
+                    <span class="stat-value danger">{{failed_actions}}</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Total ROI Impact</span>
+                    <span class="stat-value">+{{total_roi_impact}}%</span>
+                </div>
+            </div>
+            
+            <section class="history-list">
+                <h2>Recent Actions</h2>
+                {{#each recent_actions}}
+                <div class="history-item {{#if success}}success{{else}}failed{{/if}}">
+                    <div class="action-info">
+                        <h3>{{action_type}}</h3>
+                        <p class="action-date">{{executed_at}}</p>
+                    </div>
+                    <div class="action-result">
+                        <span class="status-badge {{#if success}}success{{else}}failed{{/if}}">
+                            {{#if success}}Success{{else}}Failed{{/if}}
+                        </span>
+                        {{#if impact}}
+                        <span class="impact-value">+{{impact}}% ROI</span>
+                        {{/if}}
+                    </div>
+                </div>
+                {{/each}}
+                {{#unless recent_actions}}
+                <div class="no-history">
+                    <h3>No actions executed yet</h3>
+                    <p>Your action history will appear here once you start executing recommendations.</p>
+                </div>
+                {{/unless}}
+            </section>
+        </main>
+        
+        <nav class="bottom-nav">
+            <a href="/" class="nav-item">Dashboard</a>
+            <a href="/recommendations" class="nav-item">Recommendations</a>
+            <a href="/history" class="nav-item active">History</a>
+            <a href="/settings" class="nav-item">Settings</a>
+        </nav>
+    </div>
+</body>
+</html>

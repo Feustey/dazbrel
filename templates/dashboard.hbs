@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dazno - Lightning ROI Optimizer</title>
+    <link rel="stylesheet" href="/static/css/dazno-theme.css">
+    <script src="/static/js/dashboard.js"></script>
+</head>
+<body>
+    <div class="dazno-container">
+        <header class="dazno-header">
+            <h1>Lightning ROI Dashboard</h1>
+            <div class="status-indicator {{connection_status}}"></div>
+        </header>
+        
+        <main class="dashboard-grid">
+            <section class="metrics-panel">
+                <h2>Node Metrics</h2>
+                <div class="metric-card">
+                    <span class="metric-label">Current ROI</span>
+                    <span class="metric-value">{{current_roi}}%</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-label">Total Channels</span>
+                    <span class="metric-value">{{metrics.total_channels}}</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-label">Active Channels</span>
+                    <span class="metric-value">{{metrics.active_channels}}</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-label">Total Capacity</span>
+                    <span class="metric-value">{{metrics.total_capacity}} sats</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-label">Fees Earned (24h)</span>
+                    <span class="metric-value">{{metrics.fees_earned_24h}} sats</span>
+                </div>
+            </section>
+            
+            <section class="recommendations-panel">
+                <h2>Active Recommendations</h2>
+                {{#each recommendations}}
+                <div class="recommendation-card priority-{{priority_class}}">
+                    <h3>{{action_type_display}}</h3>
+                    <p>{{description}}</p>
+                    <div class="impact-estimate">+{{expected_roi_impact}}% ROI</div>
+                    <div class="action-buttons">
+                        <button class="btn-approve" data-id="{{id}}">Approve</button>
+                        <button class="btn-reject" data-id="{{id}}">Reject</button>
+                    </div>
+                </div>
+                {{/each}}
+                {{#unless recommendations}}
+                <div class="no-recommendations">
+                    <p>No recommendations available at the moment.</p>
+                </div>
+                {{/unless}}
+            </section>
+        </main>
+        
+        <nav class="bottom-nav">
+            <a href="/" class="nav-item active">Dashboard</a>
+            <a href="/recommendations" class="nav-item">Recommendations</a>
+            <a href="/history" class="nav-item">History</a>
+            <a href="/settings" class="nav-item">Settings</a>
+        </nav>
+    </div>
+</body>
+</html>

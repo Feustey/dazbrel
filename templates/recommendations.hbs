@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dazno - Recommendations</title>
+    <link rel="stylesheet" href="/static/css/dazno-theme.css">
+    <script src="/static/js/recommendations.js"></script>
+</head>
+<body>
+    <div class="dazno-container">
+        <header class="dazno-header">
+            <h1>Lightning Recommendations</h1>
+            <div class="status-indicator {{connection_status}}"></div>
+        </header>
+        
+        <main class="recommendations-main">
+            <div class="filters-section">
+                <h2>Filter Recommendations</h2>
+                <div class="filter-controls">
+                    <select id="priority-filter">
+                        <option value="all">All Priorities</option>
+                        <option value="high">High Priority</option>
+                        <option value="medium">Medium Priority</option>
+                        <option value="low">Low Priority</option>
+                    </select>
+                    <select id="type-filter">
+                        <option value="all">All Types</option>
+                        <option value="OpenChannel">Open Channel</option>
+                        <option value="CloseChannel">Close Channel</option>
+                        <option value="AdjustFees">Adjust Fees</option>
+                        <option value="RebalanceChannel">Rebalance Channel</option>
+                    </select>
+                </div>
+            </div>
+            
+            <section class="recommendations-list">
+                {{#each recommendations}}
+                <div class="recommendation-card priority-{{priority_class}}" data-priority="{{priority_class}}" data-type="{{action_type}}">
+                    <div class="recommendation-header">
+                        <h3>{{action_type_display}}</h3>
+                        <span class="priority-badge priority-{{priority_class}}">{{priority_class}}</span>
+                    </div>
+                    <p class="recommendation-description">{{description}}</p>
+                    <div class="recommendation-details">
+                        <div class="impact-estimate">
+                            <span class="label">Expected ROI Impact:</span>
+                            <span class="value">+{{expected_roi_impact}}%</span>
+                        </div>
+                        <div class="created-date">
+                            <span class="label">Created:</span>
+                            <span class="value">{{created_at}}</span>
+                        </div>
+                    </div>
+                    <div class="action-buttons">
+                        <button class="btn-approve" data-id="{{id}}">Approve & Execute</button>
+                        <button class="btn-reject" data-id="{{id}}">Reject</button>
+                        <button class="btn-details" data-id="{{id}}">View Details</button>
+                    </div>
+                </div>
+                {{/each}}
+                {{#unless recommendations}}
+                <div class="no-recommendations">
+                    <h3>No recommendations available</h3>
+                    <p>Check back later for new optimization suggestions.</p>
+                </div>
+                {{/unless}}
+            </section>
+        </main>
+        
+        <nav class="bottom-nav">
+            <a href="/" class="nav-item">Dashboard</a>
+            <a href="/recommendations" class="nav-item active">Recommendations</a>
+            <a href="/history" class="nav-item">History</a>
+            <a href="/settings" class="nav-item">Settings</a>
+        </nav>
+    </div>
+</body>
+</html>

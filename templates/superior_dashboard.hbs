@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dazno Pro - Superior Lightning ROI Optimizer</title>
+    <link rel="stylesheet" href="/static/css/dazno-superior-theme.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+    <script src="/static/js/superior-dashboard.js"></script>
+</head>
+<body>
+    <div class="dazno-superior-container">
+        <header class="dazno-header-advanced">
+            <div class="header-left">
+                <h1>⚡ Dazno Pro</h1>
+                <div class="competitive-badge">
+                    <span class="vs-amboss">vs Amboss: +{{performance_advantage}}%</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="roi-indicator real-time">
+                    <span class="roi-label">Live ROI</span>
+                    <span class="roi-value {{roi_trend}}">{{current_roi}}%</span>
+                    <span class="roi-prediction">→ {{predicted_roi}}%</span>
+                </div>
+                <div class="status-cluster">
+                    <div class="status-indicator {{connection_status}}"></div>
+                    <div class="automation-status {{automation_status}}">
+                        {{#if automation_enabled}}🤖 AUTO{{else}}⏸️ MANUAL{{/if}}
+                    </div>
+                </div>
+            </div>
+        </header>
+        
+        <main class="superior-dashboard-grid">
+            <!-- Panneau de performance en temps réel -->
+            <section class="performance-command-center">
+                <h2>🎯 Performance Command Center</h2>
+                <div class="metrics-grid-advanced">
+                    <div class="metric-card-pro primary">
+                        <div class="metric-header">
+                            <span class="metric-icon">💰</span>
+                            <span class="metric-label">Current ROI</span>
+                            <span class="trend-indicator {{roi_trend}}">{{roi_change_24h}}%</span>
+                        </div>
+                        <div class="metric-value-large">{{current_roi}}%</div>
+                        <div class="metric-prediction">
+                            <span>Predicted 30d: <strong>{{predicted_roi_30d}}%</strong></span>
+                        </div>
+                    </div>
+                    
+                    <div class="metric-card-pro">
+                        <div class="metric-header">
+                            <span class="metric-icon">📊</span>
+                            <span class="metric-label">vs Competition</span>
+                            <span class="competitive-rank">#{{market_rank}}</span>
+                        </div>
+                        <div class="metric-value">{{competitive_advantage}}%</div>
+                        <div class="metric-subtitle">above avg</div>
+                    </div>
+                    
+                    <div class="metric-card-pro">
+                        <div class="metric-header">
+                            <span class="metric-icon">⚡</span>
+                            <span class="metric-label">Routing Success</span>
+                        </div>
+                        <div class="metric-value">{{routing_success_rate}}%</div>
+                        <div class="metric-subtitle">{{successful_routes}}/{{total_routes}} today</div>
+                    </div>
+                    
+                    <div class="metric-card-pro">
+                        <div class="metric-header">
+                            <span class="metric-icon">🌊</span>
+                            <span class="metric-label">Liquidity Efficiency</span>
+                        </div>
+                        <div class="metric-value">{{liquidity_efficiency}}%</div>
+                        <div class="metric-subtitle">{{active_liquidity}} sats active</div>
+                    </div>
+                </div>
+                
+                <!-- Graphique de performance temps réel -->
+                <div class="chart-container-advanced">
+                    <canvas id="realtimePerformanceChart"></canvas>
+                </div>
+            </section>
+
+            <!-- Panneau de recommandations AI supérieur -->
+            <section class="ai-recommendations-superior">
+                <div class="section-header-pro">
+                    <h2>🧠 AI Recommendations (Superior to Amboss Magma)</h2>
+                    <div class="ai-status">
+                        <span class="ai-confidence">Confidence: {{ai_confidence}}%</span>
+                        <span class="ai-model">GPT-4 Enhanced</span>
+                    </div>
+                </div>
+                
+                <div class="recommendations-container-pro">
+                    {{#each recommendations}}
+                    <div class="recommendation-card-superior priority-{{priority_class}}" data-id="{{id}}">
+                        <div class="rec-header-pro">
+                            <div class="rec-title-section">
+                                <h3>{{action_type_display}}</h3>
+                                <span class="rec-priority-badge {{priority_class}}">{{priority}}</span>
+                            </div>
+                            <div class="rec-impact-section">
+                                <span class="impact-value">+{{expected_roi_impact}}%</span>
+                                <span class="impact-label">ROI Impact</span>
+                            </div>
+                        </div>
+                        
+                        <div class="rec-content-pro">
+                            <p class="rec-description">{{description}}</p>
+                            <div class="rec-details-grid">
+                                <div class="detail-item">
+                                    <span class="detail-label">Confidence</span>
+                                    <span class="detail-value">{{confidence}}%</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Risk Level</span>
+                                    <span class="detail-value risk-{{risk_level}}">{{risk_level}}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Time to Execute</span>
+                                    <span class="detail-value">{{execution_time}}</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="rec-actions-pro">
+                            <button class="btn-auto-execute" data-id="{{id}}">
+                                ⚡ Auto Execute
+                            </button>
+                            <button class="btn-approve-smart" data-id="{{id}}">
+                                ✓ Approve
+                            </button>
+                            <button class="btn-simulate" data-id="{{id}}">
+                                🎯 Simulate
+                            </button>
+                            <button class="btn-schedule" data-id="{{id}}">
+                                ⏰ Schedule
+                            </button>
+                            <button class="btn-reject-smart" data-id="{{id}}">
+                                ✗ Reject
+                            </button>
+                        </div>
+                    </div>
+                    {{/each}}
+                    
+                    {{#unless recommendations}}
+                    <div class="no-recommendations-state">
+                        <div class="state-icon">🎯</div>
+                        <h3>Your node is perfectly optimized!</h3>
+                        <p>Our AI found no improvements needed right now.</p>
+                        <button class="btn-force-analysis">Force Deep Analysis</button>
+                    </div>
+                    {{/unless}}
+                </div>
+            </section>
+
+            <!-- Panneau d'automatisation avancée -->
+            <section class="automation-control-panel">
+                <h2>🤖 Automation Control Center</h2>
+                <div class="automation-stats">
+                    <div class="auto-metric">
+                        <span class="auto-label">Actions Today</span>
+                        <span class="auto-value">{{automation_stats.actions_today}}</span>
+                    </div>
+                    <div class="auto-metric">
+                        <span class="auto-label">Success Rate</span>
+                        <span class="auto-value">{{automation_stats.success_rate}}%</span>
+                    </div>
+                    <div class="auto-metric">
+                        <span class="auto-label">ROI Gained</span>
+                        <span class="auto-value">+{{automation_stats.roi_gained}}%</span>
+                    </div>
+                </div>
+                
+                <div class="automation-controls">
+                    <div class="control-group">
+                        <label class="control-label">Automation Mode</label>
+                        <select class="control-select" id="automationMode">
+                            <option value="conservative">🛡️ Conservative</option>
+                            <option value="balanced">⚖️ Balanced</option>
+                            <option value="aggressive">🚀 Aggressive</option>
+                            <option value="custom">🎛️ Custom</option>
+                        </select>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label class="control-label">Max Daily Actions</label>
+                        <input type="range" class="control-range" id="maxActions" min="1" max="50" value="{{max_daily_actions}}">
+                        <span class="range-value">{{max_daily_actions}}</span>
+                    </div>
+                    
+                    <div class="control-toggle-group">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="autoExecution" {{#if auto_execution_enabled}}checked{{/if}}>
+                            <span class="toggle-slider"></span>
+                            <span class="toggle-label">Auto-Execution</span>
+                        </label>
+                        
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="smartScheduling" {{#if smart_scheduling_enabled}}checked{{/if}}>
+                            <span class="toggle-slider"></span>
+                            <span class="toggle-label">Smart Scheduling</span>
+                        </label>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Analyse concurrentielle vs Amboss -->
+            <section class="competitive-analysis-panel">
+                <h2>🏆 Competitive Analysis vs Amboss</h2>
+                <div class="competitor-chart-container">
+                    <canvas id="competitorChart"></canvas>
+                </div>
+                
+                <div class="competitive-metrics">
+                    <div class="competitive-metric dazno-advantage">
+                        <span class="metric-label">Dazno Advantage</span>
+                        <span class="metric-value">+{{dazno_advantage}}%</span>
+                        <span class="metric-trend up">📈</span>
+                    </div>
+                    <div class="competitive-metric">
+                        <span class="metric-label">ML Accuracy</span>
+                        <span class="metric-value">{{ml_accuracy}}%</span>
+                        <span class="metric-comparison">vs {{amboss_accuracy}}%</span>
+                    </div>
+                    <div class="competitive-metric">
+                        <span class="metric-label">Response Time</span>
+                        <span class="metric-value">{{response_time}}ms</span>
+                        <span class="metric-comparison">vs {{amboss_response_time}}ms</span>
+                    </div>
+                </div>
+            </section>
+        </main>
+        
+        <!-- Navigation inférieure améliorée -->
+        <nav class="superior-bottom-nav">
+            <a href="/" class="nav-item-pro active">
+                <span class="nav-icon">🎯</span>
+                <span class="nav-label">Dashboard</span>
+            </a>
+            <a href="/recommendations" class="nav-item-pro">
+                <span class="nav-icon">🧠</span>
+                <span class="nav-label">AI Recs</span>
+                <span class="nav-badge">{{pending_recommendations}}</span>
+            </a>
+            <a href="/automation" class="nav-item-pro">
+                <span class="nav-icon">🤖</span>
+                <span class="nav-label">Automation</span>
+            </a>
+            <a href="/analytics" class="nav-item-pro">
+                <span class="nav-icon">📊</span>
+                <span class="nav-label">Analytics</span>
+            </a>
+            <a href="/settings" class="nav-item-pro">
+                <span class="nav-icon">⚙️</span>
+                <span class="nav-label">Settings</span>
+            </a>
+        </nav>
+    </div>
+    
+    <!-- Notifications container -->
+    <div class="notifications-container" id="notificationsContainer"></div>
+    
+    <!-- Modals -->
+    <div class="modal-overlay" id="simulationModal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🎯 Action Simulation</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="simulationResults"></div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

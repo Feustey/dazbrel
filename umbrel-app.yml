@@ -1,0 +1,30 @@
+manifestVersion: 1
+id: dazno
+category: lightning
+name: Dazno Lightning ROI Optimizer
+version: "1.0.0"
+tagline: Optimize your Lightning Network node ROI using local Umbrel apps
+description: >-
+  Dazno analyzes your Lightning node performance using local Umbrel applications 
+  (LND, Lightning Terminal, Electrs) and provides actionable recommendations to 
+  maximize your return on investment through automated channel management and 
+  routing optimization. All actions are executed locally for maximum security.
+developer: Dazno
+website: https://dazno.de
+dependencies:
+  - lightning-node
+  - lightning-terminal
+  - electrs
+  - bitcoin
+repo: https://github.com/dazno/umbrel-app
+support: https://github.com/dazno/umbrel-app/issues
+port: 3000
+gallery:
+  - 1.jpg
+  - 2.jpg
+  - 3.jpg
+path: ""
+defaultUsername: ""
+defaultPassword: ""
+submitter: Dazno Team
+submission: https://github.com/getumbrel/umbrel-apps/pull/xxx
