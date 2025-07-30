@@ -264,6 +264,7 @@ mod tests {
     use test_data::*;
     use test_utils::*;
     use test_assertions::*;
+    use dazno_umbrel::api::mcp_client::{ActionType, Priority};
     
     #[test]
     fn test_config_creation() {

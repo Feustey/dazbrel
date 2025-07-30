@@ -244,16 +244,18 @@ async fn test_concurrent_operations() {
     let node_pubkey = "02a1b2c3d4e5f6789abcdef123456789abcdef123456789abcdef123456789abcdef";
     
     // Create multiple concurrent tasks
-    let tasks = vec![
-        tokio::spawn({
-            let client = mcp_client.clone();
-            async move { client.health_check().await }
-        }),
-        tokio::spawn({
-            let client = mcp_client.clone();
-            let pubkey = node_pubkey.to_string();
-            async move { client.get_recommendations(&pubkey).await }
-        }),
+    let health_check_task = tokio::spawn({
+        let client = mcp_client.clone();
+        async move { client.health_check().await }
+    });
+    
+    let recommendations_task = tokio::spawn({
+        let client = mcp_client.clone();
+        let pubkey = node_pubkey.to_string();
+        async move { client.get_recommendations(&pubkey).await }
+    });
+    
+    let additional_tasks = vec![
         tokio::spawn({
             let client = mcp_client.clone();
             let pubkey = node_pubkey.to_string();
@@ -267,11 +269,15 @@ async fn test_concurrent_operations() {
     ];
     
     // Wait for all tasks to complete
-    let results = futures_util::future::join_all(tasks).await;
+    let health_result = health_check_task.await;
+    let recommendations_result = recommendations_task.await;
+    let additional_results = futures_util::future::join_all(additional_tasks).await;
     
     // All tasks should complete without panicking
-    for result in results {
-        assert!(result.is_ok());
+    assert!(health_result.is_ok(), "Health check task should not panic");
+    assert!(recommendations_result.is_ok(), "Recommendations task should not panic");
+    for result in additional_results {
+        assert!(result.is_ok(), "Task should not panic");
     }
     
     println!("Concurrent operations test completed");

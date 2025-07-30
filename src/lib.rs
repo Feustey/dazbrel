@@ -2,7 +2,7 @@
 // Superior Lightning ROI Optimizer for Umbrel
 
 pub mod api;
-
+pub mod middleware;
 pub mod models;
 pub mod handlers;
 pub mod utils;

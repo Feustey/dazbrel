@@ -14,17 +14,20 @@ mod api;
 mod models;
 mod handlers;
 mod utils;
+mod middleware;
 
 use api::mcp_client::MCPClient;
 use api::local_lightning_client::LocalLightningClient;
 use handlers::websocket::{WebSocketState, websocket_handler, start_real_time_updates};
 use handlers::advanced_api::*;
+use middleware::{auth_middleware, public_route_middleware, rate_limit_middleware, RateLimitState, create_action_rate_limiter};
 
 struct AppState {
     mcp_client: MCPClient,
     lightning_client: Arc<tokio::sync::Mutex<LocalLightningClient>>,
     handlebars: Handlebars<'static>,
     ws_state: Arc<WebSocketState>,
+    rate_limiter: RateLimitState,
 }
 
 #[tokio::main]
@@ -64,11 +67,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     let ws_state = Arc::new(WebSocketState::new());
 
+    let rate_limiter = create_action_rate_limiter();
+
     let app_state = AppState {
         mcp_client,
         lightning_client,
         handlebars,
         ws_state: ws_state.clone(),
+        rate_limiter,
     };
 
     // Start real-time updates background task
@@ -77,7 +83,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         start_real_time_updates(ws_state_clone).await;
     });
 
-    let app = Router::new()
+    // Routes publiques (sans authentification)
+    let public_routes = Router::new()
+        .route("/api/health", get(health_check))
+        .route_layer(axum::middleware::from_fn(public_route_middleware));
+
+    // Routes protégées (avec authentification et rate limiting)
+    let protected_routes = Router::new()
         // Main pages
         .route("/", get(dashboard_handler))
         .route("/superior", get(superior_dashboard_handler))
@@ -86,13 +98,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/recommendations", get(get_recommendations_handler))
         .route("/api/actions", post(execute_action_handler))
         
-        // Advanced API endpoints
+        // Advanced API endpoints - CRITIQUE: Actions financières
         .route("/api/recommendations/auto-execute", post(auto_execute_recommendation))
         .route("/api/recommendations/simulate", post(simulate_recommendation))
         .route("/api/recommendations/schedule", post(schedule_recommendation))
         .route("/api/recommendations/:id/optimal-time", get(get_optimal_time))
         
-        // Automation endpoints
+        // Automation endpoints - CRITIQUE: Configuration d'automatisation
         .route("/api/automation/mode", post(update_automation_mode))
         .route("/api/automation/max-actions", post(update_max_actions))
         .route("/api/automation/auto-execution", post(toggle_auto_execution))
@@ -106,13 +118,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // WebSocket endpoint
         .route("/ws/realtime", get(websocket_handler))
         
-        // Real Lightning node data
+        // Real Lightning node data - CRITIQUE: Données sensibles
         .route("/api/node/info", get(get_node_info_handler))
         .route("/api/node/channels", get(get_channels_handler))
         
-        // Health check
-        .route("/api/health", get(health_check))
-        
+        // Middleware d'authentification pour toutes les routes protégées
+        .route_layer(axum::middleware::from_fn(auth_middleware))
+        // Rate limiting plus strict pour les actions critiques
+        .route_layer(axum::middleware::from_fn(rate_limit_middleware));
+
+    let app = Router::new()
+        .merge(public_routes)
+        .merge(protected_routes)
         .with_state(std::sync::Arc::new(app_state));
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?;
@@ -316,9 +333,11 @@ async fn execute_action_handler() -> impl IntoResponse {
 
 async fn get_node_info_handler() -> Result<Json<serde_json::Value>, StatusCode> {
     info!("📡 Node info requested - will integrate with LND client");
+    
+    // SÉCURISÉ: Pas de hardcoded credentials, données génériques pour le mock
     Ok(Json(json!({
-        "pubkey": "02a1b2c3d4e5f6789abcdef123456789abcdef123456789abcdef123456789abcdef",
-        "alias": "Dazno Umbrel Node",
+        "pubkey": format!("{}...{}", "02", "def"), // Pubkey tronquée pour la sécurité
+        "alias": "Lightning Node",
         "num_channels": 8,
         "num_active_channels": 7,
         "local_balance": 2500000,
@@ -327,24 +346,26 @@ async fn get_node_info_handler() -> Result<Json<serde_json::Value>, StatusCode> 
         "synced_to_chain": true,
         "synced_to_graph": true,
         "version": "0.17.4-beta",
-        "status": "✅ Mock data - real LND integration ready"
+        "status": "🔒 Secure mock data - real LND integration ready"
     })))
 }
 
 async fn get_channels_handler() -> Result<Json<serde_json::Value>, StatusCode> {
     info!("⚡ Channels requested - will integrate with LND client");
+    
+    // SÉCURISÉ: Données génériques sans informations sensibles
     Ok(Json(json!([
         {
-            "channel_id": "825645821654876544",
-            "channel_point": "a1b2c3d4e5f6789012345678901234567890123456789012345678901234567890:0",
-            "peer_pubkey": "03fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210fe",
-            "peer_alias": "Lightning Store",
+            "channel_id": "***REDACTED***",
+            "channel_point": "***REDACTED***:0",
+            "peer_pubkey": format!("{}...{}", "03", "fe"), // Pubkey tronquée
+            "peer_alias": "Lightning Peer",
             "capacity": 2000000,
             "local_balance": 800000,
             "remote_balance": 1200000,
             "active": true,
             "private": false,
-            "status": "✅ Mock data - real LND integration ready"
+            "status": "🔒 Secure mock data - real LND integration ready"
         }
     ])))
 }

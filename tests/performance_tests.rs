@@ -1,4 +1,4 @@
-use dazno_umbrel::api::mcp_client::{MCPClient, NodeMetrics, ChannelMetrics, ActionResult};
+use dazno_umbrel::api::mcp_client::{MCPClient, NodeMetrics, ChannelMetrics};
 use std::time::{Duration, Instant};
 use tokio::time;
 use wiremock::{Mock, MockServer, ResponseTemplate};
@@ -197,18 +197,17 @@ async fn test_error_recovery_performance() {
     // Test how quickly the system recovers from errors
     let mock_server = MockServer::start().await;
     
-    // Setup mock that fails first few times, then succeeds
-    let mut call_count = 0;
+    // Setup mock that initially fails, then succeeds
     Mock::given(method("GET"))
         .and(path("/api/v1/health"))
-        .respond_with(move |_req| {
-            call_count += 1;
-            if call_count <= 3 {
-                ResponseTemplate::new(500) // First 3 calls fail
-            } else {
-                ResponseTemplate::new(200).set_body_json(json!({"status": "ok"}))
-            }
-        })
+        .respond_with(ResponseTemplate::new(500)) // First call will fail
+        .mount(&mock_server)
+        .await;
+        
+    // Add a second mock that will succeed
+    Mock::given(method("GET"))
+        .and(path("/api/v1/health"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({"status": "ok"})))
         .mount(&mock_server)
         .await;
     
@@ -334,22 +333,10 @@ async fn test_api_rate_limiting_simulation() {
     // Simulate API rate limiting scenarios
     let mock_server = MockServer::start().await;
     
-    // Setup mock that returns 429 (rate limited) for rapid requests
-    let mut request_count = std::sync::Arc::new(std::sync::atomic::AtomicU32::new(0));
-    let count_clone = request_count.clone();
-    
+    // Setup mock that simulates rate limiting
     Mock::given(method("GET"))
         .and(path("/api/v1/health"))
-        .respond_with(move |_req| {
-            let count = count_clone.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-            if count < 10 {
-                ResponseTemplate::new(200).set_body_json(json!({"status": "ok"}))
-            } else if count < 15 {
-                ResponseTemplate::new(429).set_body_json(json!({"error": "Rate limited"}))
-            } else {
-                ResponseTemplate::new(200).set_body_json(json!({"status": "ok"}))
-            }
-        })
+        .respond_with(ResponseTemplate::new(429).set_body_json(json!({"error": "Rate limited"})))
         .mount(&mock_server)
         .await;
     

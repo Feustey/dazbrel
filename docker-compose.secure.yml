@@ -1,0 +1,104 @@
+version: "3.7"
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: dazno_web_1
+      APP_PORT: 3000
+
+  web:
+    build: .
+    restart: on-failure
+    environment:
+      # SÉCURISÉ: API externe pour recommandations seulement
+      - MCP_API_URL=${MCP_API_URL:-https://api.dazno.de}
+      
+      # SÉCURISÉ: Connexions locales Umbrel avec variables d'environnement
+      - LND_HOST=${LND_HOST:-umbrel.local}
+      - LND_GRPC_PORT=${LND_GRPC_PORT:-10009}
+      - LND_REST_PORT=${LND_REST_PORT:-8080}
+      - LIGHTNING_TERMINAL_URL=${LIGHTNING_TERMINAL_URL:-http://lightning-terminal_web_1:3004}
+      - ELECTRS_URL=${ELECTRS_URL:-http://electrs_web_1:3002}
+      - BITCOIN_RPC_URL=${BITCOIN_RPC_URL:-http://bitcoin_bitcoind_1:8332}
+      
+      # SÉCURISÉ: Credentials via secrets Docker ou variables d'environnement chiffrées
+      - LND_MACAROON_PATH=${LND_MACAROON_PATH:-/lnd/data/chain/bitcoin/mainnet/admin.macaroon}
+      - LND_TLS_CERT_PATH=${LND_TLS_CERT_PATH:-/lnd/tls.cert}
+      
+      # CRITIQUE: Ne jamais exposer les credentials en dur
+      # Utiliser Docker secrets ou un gestionnaire de secrets externe
+      - BITCOIN_RPC_USER_FILE=/run/secrets/bitcoin_rpc_user
+      - BITCOIN_RPC_PASS_FILE=/run/secrets/bitcoin_rpc_pass
+      
+      # SÉCURISÉ: Clé secrète pour l'authentification JWT
+      - AUTH_SECRET_KEY_FILE=/run/secrets/auth_secret_key
+      
+      # SÉCURISÉ: Configuration de sécurité
+      - RUST_LOG=${RUST_LOG:-info}
+      - ENABLE_RATE_LIMITING=${ENABLE_RATE_LIMITING:-true}
+      - MAX_REQUESTS_PER_MINUTE=${MAX_REQUESTS_PER_MINUTE:-60}
+      - AUTH_TOKEN_TTL_SECONDS=${AUTH_TOKEN_TTL_SECONDS:-3600}
+      
+    volumes:
+      # SÉCURISÉ: Accès en lecture seule aux données sensibles
+      - ${APP_LIGHTNING_NODE_DATA_DIR}:/lnd:ro
+      - ${APP_BITCOIN_DATA_DIR}:/bitcoin:ro
+      - ./data:/app/data
+      
+    # SÉCURISÉ: Utilisation de Docker secrets pour les informations sensibles
+    secrets:
+      - bitcoin_rpc_user
+      - bitcoin_rpc_pass
+      - auth_secret_key
+      
+    networks:
+      default:
+        ipv4_address: $APP_DAZNO_IP
+        
+    # SÉCURISÉ: Limitation des capacités du conteneur
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+      
+    # SÉCURISÉ: Utilisateur non-root
+    user: "1000:1000"
+    
+    # SÉCURISÉ: Restrictions de ressources
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+          
+    # SÉCURISÉ: Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+      
+    depends_on:
+      - lightning-terminal_web_1
+      - electrs_web_1
+
+# SÉCURISÉ: Configuration des secrets Docker
+secrets:
+  bitcoin_rpc_user:
+    file: ./secrets/bitcoin_rpc_user.txt
+  bitcoin_rpc_pass:
+    file: ./secrets/bitcoin_rpc_pass.txt  
+  auth_secret_key:
+    file: ./secrets/auth_secret_key.txt
+
+# SÉCURISÉ: Configuration réseau isolée
+networks:
+  default:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

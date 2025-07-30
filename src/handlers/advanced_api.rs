@@ -1,18 +1,20 @@
 use axum::{
-    extract::{Path, Query, State},
+    extract::{Path, State},
     http::StatusCode,
     response::Json,
     Json as RequestJson,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use tracing::{info, warn};
+use tracing::{info, error};
 use uuid::Uuid;
+
+use crate::middleware::validation::validate_input;
 
 use crate::handlers::websocket::AutomationResult;
 use crate::models::{
-    analytics::{NodeAnalytics, ChannelAnalytics, PredictiveAnalytics},
-    automation::{AutomationSettings, AutomationExecution, ExecutionStatus},
+    analytics::NodeAnalytics,
+    automation::AutomationSettings,
 };
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -100,6 +102,17 @@ pub async fn auto_execute_recommendation(
     State(app_state): State<Arc<crate::AppState>>,
     RequestJson(payload): RequestJson<AutoExecuteRequest>,
 ) -> Result<Json<AutoExecuteResponse>, StatusCode> {
+    // SÉCURITÉ: Validation d'entrée
+    if let Err(e) = validate_input("recommendation_id", &payload.recommendation_id) {
+        error!("Invalid recommendation_id: {:?}", e);
+        return Err(StatusCode::BAD_REQUEST);
+    }
+    
+    if let Err(e) = validate_input("message", &payload.execution_mode) {
+        error!("Invalid execution_mode: {:?}", e);
+        return Err(StatusCode::BAD_REQUEST);
+    }
+    
     info!("Auto-executing recommendation: {}", payload.recommendation_id);
     
     // Simulate execution time
@@ -149,6 +162,12 @@ pub async fn auto_execute_recommendation(
 pub async fn simulate_recommendation(
     RequestJson(payload): RequestJson<SimulationRequest>,
 ) -> Result<Json<SimulationResponse>, StatusCode> {
+    // SÉCURITÉ: Validation d'entrée
+    if let Err(e) = validate_input("recommendation_id", &payload.recommendation_id) {
+        error!("Invalid recommendation_id in simulation: {:?}", e);
+        return Err(StatusCode::BAD_REQUEST);
+    }
+    
     info!("Simulating recommendation: {}", payload.recommendation_id);
     
     // Simulate analysis time
@@ -202,6 +221,12 @@ pub async fn schedule_recommendation(
 pub async fn get_optimal_time(
     Path(recommendation_id): Path<String>,
 ) -> Result<Json<OptimalTimeResponse>, StatusCode> {
+    // SÉCURITÉ: Validation du paramètre de chemin
+    if let Err(e) = validate_input("recommendation_id", &recommendation_id) {
+        error!("Invalid recommendation_id in path: {:?}", e);
+        return Err(StatusCode::BAD_REQUEST);
+    }
+    
     info!("Getting optimal time for recommendation: {}", recommendation_id);
     
     // Simulate optimal time calculation
