@@ -15,12 +15,17 @@ mod models;
 mod handlers;
 mod utils;
 mod middleware;
+mod auth;
+mod routes;
 
 use api::mcp_client::MCPClient;
 use api::local_lightning_client::LocalLightningClient;
 use handlers::websocket::{WebSocketState, websocket_handler, start_real_time_updates};
 use handlers::advanced_api::*;
 use middleware::{auth_middleware, public_route_middleware, rate_limit_middleware, RateLimitState, create_action_rate_limiter};
+use auth::{AuthService, session::{create_sqlite_session_layer, development_session_config}};
+use routes::auth as auth_routes;
+use sqlx::SqlitePool;
 
 struct AppState {
     mcp_client: MCPClient,
@@ -28,6 +33,7 @@ struct AppState {
     handlebars: Handlebars<'static>,
     ws_state: Arc<WebSocketState>,
     rate_limiter: RateLimitState,
+    auth_service: AuthService,
 }
 
 #[tokio::main]
@@ -38,11 +44,30 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     info!("Starting Dazno Umbrel App");
 
+    // Initialiser la base de données
+    let database_url = std::env::var("DATABASE_URL")
+        .unwrap_or_else(|_| "sqlite:./data/dazno.db".to_string());
+    
+    info!("Connecting to database: {}", database_url);
+    let db_pool = SqlitePool::connect(&database_url).await?;
+    
+    // Initialiser le service d'authentification
+    let auth_service = AuthService::new(db_pool.clone());
+    auth_service.create_tables().await?;
+    
+    // Initialiser l'utilisateur par défaut et récupérer le mot de passe
+    let default_password = auth_service.initialize_default_user().await?;
+    if default_password != "Utilisateur existant" {
+        info!("🔑 Utilisateur admin créé avec mot de passe: {}", default_password);
+    }
+
     let mut handlebars = Handlebars::new();
     handlebars.register_template_file("dashboard", "templates/dashboard.hbs")?;
     handlebars.register_template_file("recommendations", "templates/recommendations.hbs")?;
     handlebars.register_template_file("history", "templates/history.hbs")?;
     handlebars.register_template_file("settings", "templates/settings.hbs")?;
+    handlebars.register_template_file("login", "templates/login.html")?;
+    handlebars.register_template_file("change-password", "templates/change-password.html")?;
 
     let mcp_api_url = std::env::var("MCP_API_URL")
         .unwrap_or_else(|_| "https://api.dazno.de".to_string());
@@ -75,6 +100,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         handlebars,
         ws_state: ws_state.clone(),
         rate_limiter,
+        auth_service,
     };
 
     // Start real-time updates background task
@@ -83,15 +109,27 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         start_real_time_updates(ws_state_clone).await;
     });
 
+    // Configuration des sessions
+    let session_config = development_session_config();
+    let session_layer = create_sqlite_session_layer(db_pool.clone(), session_config).await?;
+
     // Routes publiques (sans authentification)
     let public_routes = Router::new()
         .route("/api/health", get(health_check))
+        .route("/login", get(auth_routes::login_page))
+        .route("/login", post(auth_routes::login_post))
+        .route("/logout", get(auth_routes::logout))
         .route_layer(axum::middleware::from_fn(public_route_middleware));
 
     // Routes protégées (avec authentification et rate limiting)
     let protected_routes = Router::new()
         // Main pages
         .route("/", get(dashboard_handler))
+        
+        // Auth routes pour utilisateurs connectés
+        .route("/change-password", get(auth_routes::change_password_page))
+        .route("/change-password", post(auth_routes::change_password_post))
+        .route("/api/auth/status", get(auth_routes::auth_status))
         .route("/superior", get(superior_dashboard_handler))
         
         // Basic API
@@ -130,6 +168,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let app = Router::new()
         .merge(public_routes)
         .merge(protected_routes)
+        .layer(session_layer)
         .with_state(std::sync::Arc::new(app_state));
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?;
