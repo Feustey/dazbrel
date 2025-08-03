@@ -1,30 +1,55 @@
 manifestVersion: 1
-id: dazno
-category: lightning
+id: dazno-lightning-roi
+category: bitcoin
 name: Dazno Lightning ROI Optimizer
 version: "1.0.0"
-tagline: Optimize your Lightning Network node ROI using local Umbrel apps
+tagline: "⚡ Maximize your Lightning Network profits with AI-powered ROI optimization"
 description: >-
-  Dazno analyzes your Lightning node performance using local Umbrel applications 
-  (LND, Lightning Terminal, Electrs) and provides actionable recommendations to 
-  maximize your return on investment through automated channel management and 
-  routing optimization. All actions are executed locally for maximum security.
-developer: Dazno
+  Transform your Lightning node into a profit-optimized powerhouse! Dazno analyzes your node's 
+  performance in real-time and provides actionable AI-powered recommendations to maximize your 
+  return on investment.
+  
+  🚀 KEY FEATURES:
+  • Smart Channel Management - Automated recommendations for opening/closing channels
+  • Real-time ROI Analytics - Track your node's profitability with detailed metrics
+  • Competitive Analysis - Compare your performance against top nodes like Amboss Magma
+  • Automated Fee Optimization - Dynamic fee adjustments based on network conditions
+  • Risk Assessment - Intelligent evaluation of routing opportunities
+  • Superior Dashboard - Modern, responsive interface with dark theme
+  
+  💡 INTELLIGENT AUTOMATION:
+  • ML-powered recommendation engine
+  • Predictive analytics for channel liquidity
+  • Smart rebalancing suggestions
+  • Performance forecasting and trend analysis
+  
+  🔒 SECURITY & PRIVACY:
+  • All analysis performed locally on your Umbrel
+  • No sensitive data leaves your node
+  • Secure authentication with Argon2 encryption
+  • Rate limiting and input validation
+  
+  Perfect for node operators who want to turn their Lightning node into a profitable business 
+  while maintaining full sovereignty over their Bitcoin.
+
+developer: Dazno Team
 website: https://dazno.de
 dependencies:
+  - bitcoin
   - lightning-node
   - lightning-terminal
   - electrs
-  - bitcoin
-repo: https://github.com/dazno/umbrel-app
-support: https://github.com/dazno/umbrel-app/issues
+repo: https://github.com/Feustey/dazbrel
+support: https://github.com/Feustey/dazbrel/issues
 port: 3000
 gallery:
-  - gallery/1.jpg
-  - gallery/2.jpg
-  - gallery/3.jpg
+  - gallery/dashboard-main.png
+  - gallery/roi-analytics.png
+  - gallery/channel-management.png
+  - gallery/competitive-analysis.png
+  - gallery/automation-settings.png
 path: ""
-defaultUsername: ""
+defaultUsername: "admin"
 defaultPassword: ""
 submitter: Dazno Team
-submission: https://github.com/getumbrel/umbrel-apps/pull/xxx
+submission: https://github.com/getumbrel/umbrel-apps/pull/TBD

@@ -1,0 +1,59 @@
+<svg width="1440" height="900" viewBox="0 0 1440 900" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f172a;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1e293b;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1440" height="900" fill="url(#bg)"/>
+  
+  <!-- Main card -->
+  <rect x="60" y="60" width="1320" height="780" fill="#1e293b" rx="20" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+  
+  <!-- Header -->
+  <rect x="80" y="80" width="1280" height="80" fill="#2563eb" rx="15"/>
+  <text x="120" y="130" font-family="Arial, sans-serif" font-size="36" font-weight="bold" fill="white">⚡ ROI Analytics Dashboard</text>
+  
+  <!-- Subtitle -->
+  <text x="120" y="200" font-family="Arial, sans-serif" font-size="18" fill="#94a3b8">Track your node's profitability with detailed metrics and trends</text>
+  
+  <!-- Feature boxes -->
+  <rect x="120" y="240" width="380" height="200" fill="rgba(16, 185, 129, 0.1)" rx="15" stroke="#10b981" stroke-width="2"/>
+  <text x="140" y="280" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#10b981">Lightning ROI</text>
+  <text x="140" y="320" font-family="Arial, sans-serif" font-size="48" font-weight="bold" fill="#10b981">+24.7%</text>
+  <text x="140" y="350" font-family="Arial, sans-serif" font-size="16" fill="#fbbf24">↗ Monthly Growth</text>
+  <text x="140" y="380" font-family="Arial, sans-serif" font-size="14" fill="#94a3b8">147,832 sats earned</text>
+  <text x="140" y="410" font-family="Arial, sans-serif" font-size="14" fill="#94a3b8">vs 50,000+ nodes</text>
+  
+  <rect x="530" y="240" width="380" height="200" fill="rgba(37, 99, 235, 0.1)" rx="15" stroke="#2563eb" stroke-width="2"/>
+  <text x="550" y="280" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#2563eb">Smart Channels</text>
+  <text x="550" y="320" font-family="Arial, sans-serif" font-size="48" font-weight="bold" fill="#2563eb">23</text>
+  <text x="550" y="350" font-family="Arial, sans-serif" font-size="16" fill="#10b981">✓ 21 profitable</text>
+  <text x="550" y="380" font-family="Arial, sans-serif" font-size="14" fill="#94a3b8">AI-optimized management</text>
+  <text x="550" y="410" font-family="Arial, sans-serif" font-size="14" fill="#f59e0b">⚠ 2 need attention</text>
+  
+  <rect x="940" y="240" width="380" height="200" fill="rgba(251, 191, 36, 0.1)" rx="15" stroke="#fbbf24" stroke-width="2"/>
+  <text x="960" y="280" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#fbbf24">Network Rank</text>
+  <text x="960" y="320" font-family="Arial, sans-serif" font-size="48" font-weight="bold" fill="#fbbf24">#127</text>
+  <text x="960" y="350" font-family="Arial, sans-serif" font-size="16" fill="#fbbf24">🏆 Top 5% ROI</text>
+  <text x="960" y="380" font-family="Arial, sans-serif" font-size="14" fill="#94a3b8">Elite performance</text>
+  <text x="960" y="410" font-family="Arial, sans-serif" font-size="14" fill="#94a3b8">Beats Amboss Magma</text>
+  
+  <!-- Feature list -->
+  <rect x="120" y="480" width="1200" height="320" fill="rgba(255,255,255,0.05)" rx="15"/>
+  <text x="140" y="520" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="white">🤖 AI-Powered Features</text>
+  
+  <text x="140" y="560" font-family="Arial, sans-serif" font-size="16" fill="#10b981">✓ Real-time ROI optimization with ML predictions</text>
+  <text x="140" y="590" font-family="Arial, sans-serif" font-size="16" fill="#10b981">✓ Automated channel management and rebalancing</text>
+  <text x="140" y="620" font-family="Arial, sans-serif" font-size="16" fill="#10b981">✓ Competitive analysis vs top Lightning nodes</text>
+  <text x="140" y="650" font-family="Arial, sans-serif" font-size="16" fill="#10b981">✓ Smart fee optimization based on network conditions</text>
+  <text x="140" y="680" font-family="Arial, sans-serif" font-size="16" fill="#10b981">✓ Advanced security with Argon2 authentication</text>
+  <text x="140" y="710" font-family="Arial, sans-serif" font-size="16" fill="#10b981">✓ All data processed locally on your Umbrel node</text>
+  <text x="140" y="740" font-family="Arial, sans-serif" font-size="16" fill="#10b981">✓ Superior dark theme dashboard with real-time updates</text>
+  <text x="140" y="770" font-family="Arial, sans-serif" font-size="16" fill="#fbbf24">⚡ Transform your node into a profitable Lightning business</text>
+  
+  <!-- Bottom branding -->
+  <text x="720" y="850" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#94a3b8">dazno.de</text>
+</svg>

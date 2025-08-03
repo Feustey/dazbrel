@@ -1,0 +1,70 @@
+<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Gradient pour l'effet Lightning -->
+    <linearGradient id="lightningGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#fbbf24;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#f59e0b;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Gradient pour le fond hexagonal -->
+    <linearGradient id="hexGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2563eb;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#1d4ed8;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1e40af;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Filtre pour l'ombre -->
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="4" dy="8" stdDeviation="6" flood-color="#000000" flood-opacity="0.3"/>
+    </filter>
+    
+    <!-- Gradient pour les coins d'argent -->
+    <linearGradient id="coinGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#e5e7eb;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#d1d5db;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#9ca3af;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Fond hexagonal principal -->
+  <polygon points="128,20 200,60 200,140 170,160 128,236 86,160 56,140 56,60" 
+           fill="url(#hexGrad)" 
+           filter="url(#shadow)"
+           stroke="#1e40af" stroke-width="2"/>
+  
+  <!-- Hexagone intérieur pour la profondeur -->
+  <polygon points="128,40 180,70 180,130 150,150 128,186 106,150 76,130 76,70" 
+           fill="rgba(255,255,255,0.1)" 
+           stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+  
+  <!-- Éclair Lightning principal -->
+  <path d="M 100 80 L 140 80 L 120 120 L 150 120 L 110 180 L 130 140 L 100 140 L 120 100 Z" 
+        fill="url(#lightningGrad)" 
+        stroke="#f59e0b" stroke-width="2"/>
+  
+  <!-- Effet de brillance sur l'éclair -->
+  <path d="M 108 85 L 125 85 L 115 110 L 125 110 L 115 130 L 120 120 L 110 120 L 115 105 Z" 
+        fill="rgba(255,255,255,0.6)"/>
+  
+  <!-- Coins Bitcoin stylisés aux angles -->
+  <circle cx="70" cy="70" r="12" fill="url(#coinGrad)" stroke="#9ca3af" stroke-width="1"/>
+  <text x="70" y="76" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#6b7280">₿</text>
+  
+  <circle cx="186" cy="70" r="12" fill="url(#coinGrad)" stroke="#9ca3af" stroke-width="1"/>
+  <text x="186" y="76" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#6b7280">₿</text>
+  
+  <!-- Petits éclairs décoratifs -->
+  <path d="M 160 50 L 170 50 L 165 60 L 175 60 L 160 80 L 168 70 L 160 70 Z" 
+        fill="#fbbf24" opacity="0.7"/>
+  
+  <path d="M 80 180 L 90 180 L 85 190 L 95 190 L 80 210 L 88 200 L 80 200 Z" 
+        fill="#fbbf24" opacity="0.7"/>
+  
+  <!-- Texte "ROI" stylisé -->
+  <text x="128" y="210" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#e5e7eb">ROI</text>
+  
+  <!-- Effet de surbrillance globale -->
+  <polygon points="128,20 200,60 200,140 170,160 128,236 86,160 56,140 56,60" 
+           fill="url(#lightningGrad)"
+           opacity="0.1"/>
+</svg>
