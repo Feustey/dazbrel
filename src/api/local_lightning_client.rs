@@ -69,6 +69,13 @@ pub struct LocalLightningClient {
     macaroon_path: String,
 }
 
+#[allow(dead_code)]
+fn _assert_local_client_bounds()
+where
+    LocalLightningClient: Send + Sync + 'static,
+{
+}
+
 impl LocalLightningClient {
     pub async fn new() -> Result<Self, Box<dyn std::error::Error>> {
         info!("Initializing Local Lightning client for Umbrel integration");

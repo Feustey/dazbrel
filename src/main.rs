@@ -1,5 +1,4 @@
 use axum::{
-    extract::State,
     http::StatusCode,
     response::{Html, IntoResponse},
     routing::{get, post},
@@ -34,10 +33,11 @@ use routes::auth as auth_routes;
 use sqlx::SqlitePool;
 use utils::ml_engine::MLEngine;
 
+#[derive(Clone)]
 struct AppState {
     mcp_client: MCPClient,
     lightning_client: Arc<tokio::sync::Mutex<LocalLightningClient>>,
-    handlebars: Handlebars<'static>,
+    handlebars: Arc<Handlebars<'static>>,
     ws_state: Arc<WebSocketState>,
     rate_limiter: RateLimitState,
     auth_service: AuthService,
@@ -79,6 +79,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     handlebars.register_template_file("settings", "templates/settings.hbs")?;
     handlebars.register_template_file("login", "templates/login.html")?;
     handlebars.register_template_file("change-password", "templates/change-password.html")?;
+    let handlebars = Arc::new(handlebars);
 
     let mcp_api_url =
         std::env::var("MCP_API_URL").unwrap_or_else(|_| "https://api.dazno.de".to_string());
@@ -128,7 +129,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let session_layer = create_sqlite_session_layer(db_pool.clone(), session_config).await?;
 
     // Routes publiques (sans authentification)
-    let public_routes = Router::new()
+    let public_routes = Router::<AppState>::new()
         .route("/api/health", get(health_check))
         .route("/login", get(auth_routes::login_page))
         .route("/login", post(auth_routes::login_post))
@@ -136,7 +137,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route_layer(axum::middleware::from_fn(public_route_middleware));
 
     // Routes protégées (avec authentification et rate limiting)
-    let protected_routes = Router::new()
+    let protected_routes = Router::<AppState>::new()
         // Main pages
         .route("/", get(dashboard_handler))
         // Auth routes pour utilisateurs connectés
@@ -186,11 +187,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Rate limiting plus strict pour les actions critiques
         .route_layer(axum::middleware::from_fn(rate_limit_middleware));
 
-    let app = Router::new()
+    let app = Router::<AppState>::new()
         .merge(public_routes)
         .merge(protected_routes)
         .layer(session_layer)
-        .with_state(std::sync::Arc::new(app_state));
+        .with_state(app_state.clone());
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?;
     info!("Server running on http://0.0.0.0:3000");
@@ -206,7 +207,7 @@ async fn dashboard_handler() -> impl IntoResponse {
 
 async fn superior_dashboard_handler() -> impl IntoResponse {
     // Mock data for the superior dashboard
-    let mock_data = json!({
+    let _mock_data = json!({
         "performance_advantage": 15.3,
         "current_roi": 15.8,
         "predicted_roi": 18.2,

@@ -21,6 +21,7 @@ pub struct User {
 }
 
 /// Service d'authentification avec Argon2
+#[derive(Clone)]
 pub struct AuthService {
     db: SqlitePool,
 }

@@ -88,7 +88,7 @@ impl WebSocketState {
 
 pub async fn websocket_handler(
     ws: WebSocketUpgrade,
-    State(app_state): State<Arc<crate::AppState>>,
+    State(app_state): State<crate::AppState>,
 ) -> Response {
     ws.on_upgrade(move |socket| handle_socket(socket, app_state.ws_state.clone()))
 }

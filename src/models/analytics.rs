@@ -227,7 +227,7 @@ pub struct RiskScenario {
 impl NodeAnalytics {
     pub fn calculate_from_channels(channels: &[LocalChannelInfo]) -> Self {
         // Simplified calculation - in real implementation this would use ML models
-        let total_capacity: u64 = channels.iter().map(|c| c.capacity).sum();
+        let _total_capacity: u64 = channels.iter().map(|c| c.capacity).sum();
         let active_channels = channels.iter().filter(|c| c.active).count();
 
         let performance_score = if active_channels > 0 {

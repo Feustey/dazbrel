@@ -41,7 +41,7 @@ pub struct AuthStatusResponse {
 
 /// Page de connexion
 pub async fn login_page(
-    State(app_state): State<std::sync::Arc<crate::AppState>>,
+    State(app_state): State<crate::AppState>,
     Query(query): Query<LoginQuery>,
     session: Session,
 ) -> Result<Html<String>, StatusCode> {
@@ -71,7 +71,7 @@ pub async fn login_page(
 
 /// Traitement de la connexion
 pub async fn login_post(
-    State(app_state): State<std::sync::Arc<crate::AppState>>,
+    State(app_state): State<crate::AppState>,
     session: Session,
     Form(login_request): Form<LoginRequest>,
 ) -> impl IntoResponse {
@@ -118,7 +118,7 @@ pub async fn login_post(
 
 /// Page de changement de mot de passe
 pub async fn change_password_page(
-    State(app_state): State<std::sync::Arc<crate::AppState>>,
+    State(app_state): State<crate::AppState>,
     session: Session,
 ) -> Result<impl IntoResponse, StatusCode> {
     // Vérifier que l'utilisateur est connecté
@@ -149,7 +149,7 @@ pub async fn change_password_page(
 
 /// Traitement du changement de mot de passe
 pub async fn change_password_post(
-    State(app_state): State<std::sync::Arc<crate::AppState>>,
+    State(app_state): State<crate::AppState>,
     session: Session,
     Form(change_request): Form<ChangePasswordRequest>,
 ) -> impl IntoResponse {
@@ -207,7 +207,7 @@ pub async fn logout(session: Session) -> impl IntoResponse {
 
 /// API d'authentification pour les requêtes AJAX
 pub async fn auth_status(
-    State(app_state): State<std::sync::Arc<crate::AppState>>,
+    State(app_state): State<crate::AppState>,
     session: Session,
 ) -> impl IntoResponse {
     match get_current_user(&app_state.auth_service, &session).await {
@@ -303,9 +303,7 @@ pub async fn get_current_user(
 
 /// Endpoint pour l'initialisation du premier utilisateur (développement uniquement)
 #[cfg(debug_assertions)]
-pub async fn init_default_user(
-    State(app_state): State<std::sync::Arc<crate::AppState>>,
-) -> impl IntoResponse {
+pub async fn init_default_user(State(app_state): State<crate::AppState>) -> impl IntoResponse {
     match app_state.auth_service.initialize_default_user().await {
         Ok(password) => {
             if password != "Utilisateur existant" {

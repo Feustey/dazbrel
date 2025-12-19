@@ -96,7 +96,7 @@ pub struct AutomationSettingsResponse {
 
 // Auto-execute recommendation endpoint
 pub async fn auto_execute_recommendation(
-    State(app_state): State<Arc<crate::AppState>>,
+    State(app_state): State<crate::AppState>,
     RequestJson(payload): RequestJson<AutoExecuteRequest>,
 ) -> Result<Json<AutoExecuteResponse>, StatusCode> {
     // SÉCURITÉ: Validation d'entrée
@@ -307,7 +307,7 @@ pub async fn toggle_auto_execution(
 
 // Force deep analysis
 pub async fn force_deep_analysis(
-    State(app_state): State<Arc<crate::AppState>>,
+    State(app_state): State<crate::AppState>,
 ) -> Result<Json<DeepAnalysisResponse>, StatusCode> {
     info!("Initiating force deep analysis");
 

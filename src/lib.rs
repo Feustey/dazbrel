@@ -24,10 +24,11 @@ pub use utils::ml_engine::MLEngine;
 use handlebars::Handlebars;
 use std::sync::Arc;
 
+#[derive(Clone)]
 pub struct AppState {
     pub mcp_client: MCPClient,
     pub lightning_client: Arc<tokio::sync::Mutex<LocalLightningClient>>,
-    pub handlebars: Handlebars<'static>,
+    pub handlebars: Arc<Handlebars<'static>>,
     pub ws_state: Arc<handlers::websocket::WebSocketState>,
     pub ml_engine: MLEngine,
 }
