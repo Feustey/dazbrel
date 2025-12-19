@@ -1,6 +1,6 @@
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use tracing::info;
-use anyhow::Result;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NodeInfo {
@@ -41,9 +41,10 @@ impl LightningClient {
 
     pub async fn get_node_info(&mut self) -> Result<NodeInfo, Box<dyn std::error::Error>> {
         info!("Fetching node info from LND (mock)");
-        
+
         let node_info = NodeInfo {
-            pubkey: "02d7f8c2abc123456789abcdef123456789abcdef123456789abcdef123456789ab".to_string(),
+            pubkey: "02d7f8c2abc123456789abcdef123456789abcdef123456789abcdef123456789ab"
+                .to_string(),
             alias: "Dazno Lightning Node".to_string(),
             num_channels: 5,
             num_active_channels: 4,
@@ -56,11 +57,12 @@ impl LightningClient {
 
     pub async fn list_channels(&mut self) -> Result<Vec<ChannelInfo>> {
         info!("Listing Lightning channels (mock)");
-        
+
         let channels = vec![
             ChannelInfo {
                 channel_id: "123456789012345678".to_string(),
-                peer_pubkey: "03abc123456789abcdef123456789abcdef123456789abcdef123456789abcdef12".to_string(),
+                peer_pubkey: "03abc123456789abcdef123456789abcdef123456789abcdef123456789abcdef12"
+                    .to_string(),
                 capacity: 1000000,
                 local_balance: 400000,
                 remote_balance: 600000,
@@ -68,7 +70,8 @@ impl LightningClient {
             },
             ChannelInfo {
                 channel_id: "987654321098765432".to_string(),
-                peer_pubkey: "03def987654321abcdef987654321abcdef987654321abcdef987654321abcdef".to_string(),
+                peer_pubkey: "03def987654321abcdef987654321abcdef987654321abcdef987654321abcdef"
+                    .to_string(),
                 capacity: 2000000,
                 local_balance: 1200000,
                 remote_balance: 800000,
@@ -79,18 +82,35 @@ impl LightningClient {
         Ok(channels)
     }
 
-    pub async fn open_channel(&mut self, params: ChannelParams) -> Result<(), Box<dyn std::error::Error>> {
-        info!("Opening channel with peer: {}, amount: {} (mock)", params.peer_pubkey, params.amount);
+    pub async fn open_channel(
+        &mut self,
+        params: ChannelParams,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        info!(
+            "Opening channel with peer: {}, amount: {} (mock)",
+            params.peer_pubkey, params.amount
+        );
         Ok(())
     }
 
-    pub async fn close_channel(&mut self, channel_id: String) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn close_channel(
+        &mut self,
+        channel_id: String,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         info!("Closing channel: {} (mock)", channel_id);
         Ok(())
     }
 
-    pub async fn update_channel_fees(&mut self, channel_id: &str, base_fee: u32, fee_rate: u32) -> Result<()> {
-        info!("Updating fees for channel {} (mock): base={}, rate={}", channel_id, base_fee, fee_rate);
+    pub async fn update_channel_fees(
+        &mut self,
+        channel_id: &str,
+        base_fee: u32,
+        fee_rate: u32,
+    ) -> Result<()> {
+        info!(
+            "Updating fees for channel {} (mock): base={}, rate={}",
+            channel_id, base_fee, fee_rate
+        );
         Ok(())
     }
 

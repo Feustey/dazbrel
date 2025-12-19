@@ -1,11 +1,11 @@
+use anyhow::{Context, Result};
+use argon2::password_hash::{rand_core::OsRng, Error as PasswordHashError, SaltString};
 use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
-use argon2::password_hash::{rand_core::OsRng, SaltString, Error as PasswordHashError};
-use sqlx::{SqlitePool, Row};
-use uuid::Uuid;
 use chrono::{DateTime, Utc};
-use anyhow::{Result, Context};
 use serde::{Deserialize, Serialize};
+use sqlx::{Row, SqlitePool};
 use tracing::{info, warn};
+use uuid::Uuid;
 
 pub mod session;
 
@@ -43,7 +43,7 @@ impl AuthService {
                 is_admin BOOLEAN NOT NULL DEFAULT 0,
                 must_change_password BOOLEAN NOT NULL DEFAULT 0
             )
-            "#
+            "#,
         )
         .execute(&self.db)
         .await?;
@@ -59,7 +59,7 @@ impl AuthService {
                 user_agent TEXT,
                 FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
             )
-            "#
+            "#,
         )
         .execute(&self.db)
         .await?;
@@ -82,7 +82,7 @@ impl AuthService {
 
         // Générer un mot de passe sécurisé par défaut
         let default_password = self.generate_secure_password();
-        
+
         // Créer l'utilisateur admin par défaut
         let user_id = Uuid::new_v4();
         let password_hash = self.hash_password(&default_password)?;
@@ -109,9 +109,10 @@ impl AuthService {
     /// Génère un mot de passe sécurisé
     fn generate_secure_password(&self) -> String {
         use rand::Rng;
-        const CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*";
+        const CHARSET: &[u8] =
+            b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*";
         let mut rng = rand::thread_rng();
-        
+
         (0..18)
             .map(|_| {
                 let idx = rng.gen_range(0..CHARSET.len());
@@ -136,7 +137,9 @@ impl AuthService {
         let parsed_hash = PasswordHash::new(hash)
             .map_err(|e| anyhow::anyhow!("Erreur de parsing du hash: {:?}", e))?;
         let argon2 = Argon2::default();
-        Ok(argon2.verify_password(password.as_bytes(), &parsed_hash).is_ok())
+        Ok(argon2
+            .verify_password(password.as_bytes(), &parsed_hash)
+            .is_ok())
     }
 
     /// Authentifie un utilisateur
@@ -157,8 +160,12 @@ impl AuthService {
                 id: Uuid::parse_str(&row.get::<String, _>("id"))?,
                 username: row.get("username"),
                 password_hash: row.get("password_hash"),
-                created_at: DateTime::parse_from_rfc3339(&row.get::<String, _>("created_at"))?.with_timezone(&Utc),
-                last_login: row.get::<Option<String>, _>("last_login").and_then(|s| DateTime::parse_from_rfc3339(&s).ok()).map(|dt| dt.with_timezone(&Utc)),
+                created_at: DateTime::parse_from_rfc3339(&row.get::<String, _>("created_at"))?
+                    .with_timezone(&Utc),
+                last_login: row
+                    .get::<Option<String>, _>("last_login")
+                    .and_then(|s| DateTime::parse_from_rfc3339(&s).ok())
+                    .map(|dt| dt.with_timezone(&Utc)),
                 is_admin: row.get::<bool, _>("is_admin"),
                 must_change_password: row.get::<bool, _>("must_change_password"),
             };
@@ -174,17 +181,28 @@ impl AuthService {
                 info!("Authentification réussie pour l'utilisateur: {}", username);
                 return Ok(Some(user));
             } else {
-                warn!("Tentative d'authentification avec mot de passe incorrect pour: {}", username);
+                warn!(
+                    "Tentative d'authentification avec mot de passe incorrect pour: {}",
+                    username
+                );
             }
         } else {
-            warn!("Tentative d'authentification avec utilisateur inexistant: {}", username);
+            warn!(
+                "Tentative d'authentification avec utilisateur inexistant: {}",
+                username
+            );
         }
 
         Ok(None)
     }
 
     /// Change le mot de passe d'un utilisateur
-    pub async fn change_password(&self, user_id: Uuid, current_password: &str, new_password: &str) -> Result<bool> {
+    pub async fn change_password(
+        &self,
+        user_id: Uuid,
+        current_password: &str,
+        new_password: &str,
+    ) -> Result<bool> {
         // Récupérer l'utilisateur actuel
         let row = sqlx::query(
             "SELECT id, username, password_hash, created_at, last_login, is_admin, must_change_password FROM users WHERE id = ?1"
@@ -198,8 +216,12 @@ impl AuthService {
                 id: Uuid::parse_str(&row.get::<String, _>("id"))?,
                 username: row.get("username"),
                 password_hash: row.get("password_hash"),
-                created_at: DateTime::parse_from_rfc3339(&row.get::<String, _>("created_at"))?.with_timezone(&Utc),
-                last_login: row.get::<Option<String>, _>("last_login").and_then(|s| DateTime::parse_from_rfc3339(&s).ok()).map(|dt| dt.with_timezone(&Utc)),
+                created_at: DateTime::parse_from_rfc3339(&row.get::<String, _>("created_at"))?
+                    .with_timezone(&Utc),
+                last_login: row
+                    .get::<Option<String>, _>("last_login")
+                    .and_then(|s| DateTime::parse_from_rfc3339(&s).ok())
+                    .map(|dt| dt.with_timezone(&Utc)),
                 is_admin: row.get::<bool, _>("is_admin"),
                 must_change_password: row.get::<bool, _>("must_change_password"),
             };
@@ -212,7 +234,9 @@ impl AuthService {
 
             // Valider le nouveau mot de passe
             if !self.is_password_strong(new_password) {
-                return Err(anyhow::anyhow!("Le nouveau mot de passe ne respecte pas les critères de sécurité"));
+                return Err(anyhow::anyhow!(
+                    "Le nouveau mot de passe ne respecte pas les critères de sécurité"
+                ));
             }
 
             // Hasher le nouveau mot de passe
@@ -220,7 +244,7 @@ impl AuthService {
 
             // Mettre à jour en base
             sqlx::query(
-                "UPDATE users SET password_hash = ?1, must_change_password = ?2 WHERE id = ?3"
+                "UPDATE users SET password_hash = ?1, must_change_password = ?2 WHERE id = ?3",
             )
             .bind(new_hash)
             .bind(false) // Plus besoin de changer le mot de passe
@@ -228,7 +252,10 @@ impl AuthService {
             .execute(&self.db)
             .await?;
 
-            info!("Mot de passe changé avec succès pour l'utilisateur: {}", user.username);
+            info!(
+                "Mot de passe changé avec succès pour l'utilisateur: {}",
+                user.username
+            );
             return Ok(true);
         }
 
@@ -237,11 +264,11 @@ impl AuthService {
 
     /// Valide la force d'un mot de passe
     fn is_password_strong(&self, password: &str) -> bool {
-        password.len() >= 8 &&
-        password.chars().any(|c| c.is_uppercase()) &&
-        password.chars().any(|c| c.is_lowercase()) &&
-        password.chars().any(|c| c.is_numeric()) &&
-        password.chars().any(|c| !c.is_alphanumeric())
+        password.len() >= 8
+            && password.chars().any(|c| c.is_uppercase())
+            && password.chars().any(|c| c.is_lowercase())
+            && password.chars().any(|c| c.is_numeric())
+            && password.chars().any(|c| !c.is_alphanumeric())
     }
 
     /// Récupère un utilisateur par ID
@@ -258,8 +285,12 @@ impl AuthService {
                 id: Uuid::parse_str(&row.get::<String, _>("id"))?,
                 username: row.get("username"),
                 password_hash: row.get("password_hash"),
-                created_at: DateTime::parse_from_rfc3339(&row.get::<String, _>("created_at"))?.with_timezone(&Utc),
-                last_login: row.get::<Option<String>, _>("last_login").and_then(|s| DateTime::parse_from_rfc3339(&s).ok()).map(|dt| dt.with_timezone(&Utc)),
+                created_at: DateTime::parse_from_rfc3339(&row.get::<String, _>("created_at"))?
+                    .with_timezone(&Utc),
+                last_login: row
+                    .get::<Option<String>, _>("last_login")
+                    .and_then(|s| DateTime::parse_from_rfc3339(&s).ok())
+                    .map(|dt| dt.with_timezone(&Utc)),
                 is_admin: row.get::<bool, _>("is_admin"),
                 must_change_password: row.get::<bool, _>("must_change_password"),
             };

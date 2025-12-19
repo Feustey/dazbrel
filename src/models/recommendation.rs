@@ -1,5 +1,5 @@
+use crate::api::mcp_client::{ActionType, MCPRecommendation, Priority};
 use serde::{Deserialize, Serialize};
-use crate::api::mcp_client::{MCPRecommendation, ActionType, Priority};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Recommendation {

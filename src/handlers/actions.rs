@@ -20,17 +20,13 @@ pub struct ActionResponse {
 
 pub async fn process_recommendation_action(request: ActionRequest) -> ActionResponse {
     match request.action {
-        ActionType::Approve => {
-            ActionResponse {
-                success: true,
-                message: format!("Recommendation {} approved", request.recommendation_id),
-            }
-        }
-        ActionType::Reject => {
-            ActionResponse {
-                success: true,
-                message: format!("Recommendation {} rejected", request.recommendation_id),
-            }
-        }
+        ActionType::Approve => ActionResponse {
+            success: true,
+            message: format!("Recommendation {} approved", request.recommendation_id),
+        },
+        ActionType::Reject => ActionResponse {
+            success: true,
+            message: format!("Recommendation {} rejected", request.recommendation_id),
+        },
     }
 }

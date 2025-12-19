@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use crate::api::mcp_client::MCPRecommendation;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AutomationSettings {
@@ -24,10 +24,10 @@ pub enum RiskTolerance {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CustomRiskSettings {
-    pub max_channel_size_percentage: f64,  // % of total node capacity
-    pub min_peer_reliability_score: f64,   // 0-100
-    pub max_force_close_probability: f64,  // 0-1
-    pub min_expected_roi: f64,              // % minimum ROI requirement
+    pub max_channel_size_percentage: f64, // % of total node capacity
+    pub min_peer_reliability_score: f64,  // 0-100
+    pub max_force_close_probability: f64, // 0-1
+    pub min_expected_roi: f64,            // % minimum ROI requirement
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -50,22 +50,22 @@ pub struct NotificationTrigger {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TriggerType {
-    HighImpactAction,        // ROI impact > threshold
-    LargeAmountAction,       // Amount > threshold
-    FailedExecution,         // Action failed
-    UnusualActivity,         // Unusual pattern detected
-    PerformanceThreshold,    // Performance metric threshold
+    HighImpactAction,     // ROI impact > threshold
+    LargeAmountAction,    // Amount > threshold
+    FailedExecution,      // Action failed
+    UnusualActivity,      // Unusual pattern detected
+    PerformanceThreshold, // Performance metric threshold
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AdvancedAutomationSettings {
-    pub ml_confidence_threshold: f64,       // Minimum ML confidence for auto-execution
-    pub market_condition_checks: bool,      // Check market conditions before executing
-    pub peer_reputation_checks: bool,       // Verify peer reputation
-    pub liquidity_impact_analysis: bool,    // Analyze liquidity impact
-    pub rollback_on_failure: bool,          // Auto-rollback failed actions
-    pub learning_mode: bool,                // Learn from user decisions
-    pub strategy_optimization: bool,        // Optimize strategies over time
+    pub ml_confidence_threshold: f64, // Minimum ML confidence for auto-execution
+    pub market_condition_checks: bool, // Check market conditions before executing
+    pub peer_reputation_checks: bool, // Verify peer reputation
+    pub liquidity_impact_analysis: bool, // Analyze liquidity impact
+    pub rollback_on_failure: bool,    // Auto-rollback failed actions
+    pub learning_mode: bool,          // Learn from user decisions
+    pub strategy_optimization: bool,  // Optimize strategies over time
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -93,14 +93,14 @@ pub struct AutomationCondition {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ConditionType {
-    ROIImpact,              // Expected ROI impact
-    ChannelBalance,         // Channel balance threshold
-    FeeRate,               // Current fee rate
-    PeerReliability,       // Peer reliability score
-    MarketCondition,       // Market condition indicator
-    TimeOfDay,             // Time-based condition
-    NetworkCapacity,       // Network capacity threshold
-    RecentPerformance,     // Recent performance metric
+    ROIImpact,         // Expected ROI impact
+    ChannelBalance,    // Channel balance threshold
+    FeeRate,           // Current fee rate
+    PeerReliability,   // Peer reliability score
+    MarketCondition,   // Market condition indicator
+    TimeOfDay,         // Time-based condition
+    NetworkCapacity,   // Network capacity threshold
+    RecentPerformance, // Recent performance metric
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -154,10 +154,10 @@ pub struct AutomationExecution {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum AutomationExecutionType {
-    Immediate,      // Execute immediately
-    Scheduled,      // Execute at scheduled time
-    Conditional,    // Execute when conditions are met
-    Manual,         // Manual trigger with automation
+    Immediate,   // Execute immediately
+    Scheduled,   // Execute at scheduled time
+    Conditional, // Execute when conditions are met
+    Manual,      // Manual trigger with automation
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

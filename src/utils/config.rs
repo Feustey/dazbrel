@@ -32,8 +32,7 @@ impl AppConfig {
             mcp_api_url: env::var("MCP_API_URL")
                 .unwrap_or_else(|_| "https://api.dazno.de".to_string()),
             mcp_api_key: env::var("MCP_API_KEY").ok(),
-            lnd_host: env::var("LND_HOST")
-                .unwrap_or_else(|_| "localhost".to_string()),
+            lnd_host: env::var("LND_HOST").unwrap_or_else(|_| "localhost".to_string()),
             lnd_port: env::var("LND_PORT")
                 .unwrap_or_else(|_| "10009".to_string())
                 .parse()

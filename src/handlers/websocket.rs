@@ -1,11 +1,11 @@
 use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
 use axum::extract::State;
 use axum::response::Response;
+use futures_util::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::broadcast;
 use tracing::{info, warn};
-use futures_util::{SinkExt, StreamExt};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RealTimeUpdate {
@@ -163,24 +163,28 @@ async fn handle_socket(socket: WebSocket, state: Arc<WebSocketState>) {
 pub async fn start_real_time_updates(state: Arc<WebSocketState>) {
     let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(10));
     let mut roi_base = 15.5;
-    
+
     loop {
         interval.tick().await;
-        
+
         // Simulate ROI fluctuations
         let change = (rand::random::<f64>() - 0.5) * 2.0; // -1% to +1%
         roi_base += change * 0.1; // Small incremental changes
-        
+
         let roi_update = ROIUpdate {
             current: roi_base,
             predicted: roi_base + 2.5,
-            trend: if change > 0.0 { "positive".to_string() } else { "negative".to_string() },
+            trend: if change > 0.0 {
+                "positive".to_string()
+            } else {
+                "negative".to_string()
+            },
             network_average: 12.3,
             change_24h: change,
         };
-        
+
         state.broadcast_roi_update(roi_update);
-        
+
         // Occasionally broadcast competitive updates
         if rand::random::<f64>() > 0.8 {
             let competitive_data = serde_json::json!([
@@ -190,7 +194,7 @@ pub async fn start_real_time_updates(state: Arc<WebSocketState>) {
                     "competitor_value": "85%"
                 },
                 {
-                    "metric": "speed", 
+                    "metric": "speed",
                     "dazno_value": "150ms",
                     "competitor_value": "380ms"
                 },
@@ -200,7 +204,7 @@ pub async fn start_real_time_updates(state: Arc<WebSocketState>) {
                     "competitor_value": "+12.1%"
                 }
             ]);
-            
+
             state.broadcast_competitive_update(competitive_data);
         }
     }
