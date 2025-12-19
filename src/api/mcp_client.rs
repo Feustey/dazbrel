@@ -1,7 +1,7 @@
+use anyhow::Result;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use tracing::{info, warn, error};
-use anyhow::Result;
+use tracing::{error, info, warn};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MCPRecommendation {
@@ -70,8 +70,13 @@ pub struct MCPClient {
 
 impl MCPClient {
     pub fn new(base_url: String, api_key: Option<String>) -> Self {
+        let client = Client::builder()
+            .no_proxy()
+            .build()
+            .unwrap_or_else(|_| Client::new());
+
         Self {
-            client: Client::new(),
+            client,
             base_url,
             api_key,
         }
@@ -79,9 +84,9 @@ impl MCPClient {
 
     pub async fn get_recommendations(&self, node_pubkey: &str) -> Result<Vec<MCPRecommendation>> {
         let url = format!("{}/api/v1/recommendations/{}", self.base_url, node_pubkey);
-        
+
         let mut request = self.client.get(&url);
-        
+
         if let Some(key) = &self.api_key {
             request = request.header("Authorization", format!("Bearer {}", key));
         }
@@ -89,23 +94,28 @@ impl MCPClient {
         info!("Fetching recommendations from MCP: {}", url);
 
         let response = request.send().await?;
-        
+
         if !response.status().is_success() {
-            warn!("MCP API returned status: {}", response.status());
+            let status = response.status();
+            let body = response.text().await.unwrap_or_default();
+            warn!("MCP API returned status: {} - body: {}", status, body);
             return Ok(vec![]);
         }
 
         let recommendations = response.json::<Vec<MCPRecommendation>>().await?;
-        info!("Retrieved {} recommendations from MCP", recommendations.len());
-        
+        info!(
+            "Retrieved {} recommendations from MCP",
+            recommendations.len()
+        );
+
         Ok(recommendations)
     }
 
     pub async fn submit_action_result(&self, result: ActionResult) -> Result<()> {
         let url = format!("{}/api/v1/actions/result", self.base_url);
-        
+
         let mut request = self.client.post(&url).json(&result);
-        
+
         if let Some(key) = &self.api_key {
             request = request.header("Authorization", format!("Bearer {}", key));
         }
@@ -113,7 +123,7 @@ impl MCPClient {
         info!("Submitting action result to MCP: {}", result.action_id);
 
         let response = request.send().await?;
-        
+
         if !response.status().is_success() {
             error!("Failed to submit action result: {}", response.status());
             return Err(anyhow::anyhow!("Failed to submit action result"));
@@ -125,7 +135,7 @@ impl MCPClient {
 
     pub async fn health_check(&self) -> Result<bool> {
         let url = format!("{}/api/v1/health", self.base_url);
-        
+
         match self.client.get(&url).send().await {
             Ok(response) => Ok(response.status().is_success()),
             Err(_) => Ok(false),
@@ -134,17 +144,20 @@ impl MCPClient {
 
     pub async fn submit_node_metrics(&self, metrics: NodeMetrics) -> Result<()> {
         let url = format!("{}/api/v1/metrics", self.base_url);
-        
+
         let mut request = self.client.post(&url).json(&metrics);
-        
+
         if let Some(key) = &self.api_key {
             request = request.header("Authorization", format!("Bearer {}", key));
         }
 
-        info!("Submitting node metrics to MCP for pubkey: {}", metrics.pubkey);
+        info!(
+            "Submitting node metrics to MCP for pubkey: {}",
+            metrics.pubkey
+        );
 
         let response = request.send().await?;
-        
+
         if !response.status().is_success() {
             error!("Failed to submit node metrics: {}", response.status());
             return Err(anyhow::anyhow!("Failed to submit node metrics"));
@@ -154,28 +167,40 @@ impl MCPClient {
         Ok(())
     }
 
-    pub async fn get_performance_analysis(&self, node_pubkey: &str, timeframe_days: u32) -> Result<serde_json::Value> {
-        let url = format!("{}/api/v1/analysis/{}/performance?days={}", 
-                         self.base_url, node_pubkey, timeframe_days);
-        
+    pub async fn get_performance_analysis(
+        &self,
+        node_pubkey: &str,
+        timeframe_days: u32,
+    ) -> Result<serde_json::Value> {
+        let url = format!(
+            "{}/api/v1/analysis/{}/performance?days={}",
+            self.base_url, node_pubkey, timeframe_days
+        );
+
         let mut request = self.client.get(&url);
-        
+
         if let Some(key) = &self.api_key {
             request = request.header("Authorization", format!("Bearer {}", key));
         }
 
-        info!("Fetching performance analysis from MCP for {} days", timeframe_days);
+        info!(
+            "Fetching performance analysis from MCP for {} days",
+            timeframe_days
+        );
 
         let response = request.send().await?;
-        
+
         if !response.status().is_success() {
-            warn!("MCP API returned status for performance analysis: {}", response.status());
+            warn!(
+                "MCP API returned status for performance analysis: {}",
+                response.status()
+            );
             return Ok(serde_json::json!({}));
         }
 
         let analysis = response.json::<serde_json::Value>().await?;
         info!("Retrieved performance analysis from MCP");
-        
+
         Ok(analysis)
     }
 }
@@ -183,13 +208,16 @@ impl MCPClient {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use wiremock::{Mock, MockServer, ResponseTemplate};
-    use wiremock::matchers::{method, path, path_regex, header, body_json};
     use serde_json::json;
     use uuid::Uuid;
+    use wiremock::matchers::{body_json, header, method, path, path_regex};
+    use wiremock::{Mock, MockServer, ResponseTemplate};
 
     // Test helper to create mock recommendations
-    fn create_mock_recommendation(action_type: ActionType, priority: Priority) -> MCPRecommendation {
+    fn create_mock_recommendation(
+        action_type: ActionType,
+        priority: Priority,
+    ) -> MCPRecommendation {
         MCPRecommendation {
             id: Uuid::new_v4().to_string(),
             action_type,
@@ -204,20 +232,19 @@ mod tests {
     // Test helper to create mock node metrics
     fn create_mock_node_metrics() -> NodeMetrics {
         NodeMetrics {
-            pubkey: "02a1b2c3d4e5f6789abcdef123456789abcdef123456789abcdef123456789abcdef".to_string(),
+            pubkey: "02a1b2c3d4e5f6789abcdef123456789abcdef123456789abcdef123456789abcdef"
+                .to_string(),
             alias: "Test Node".to_string(),
-            channels: vec![
-                ChannelMetrics {
-                    channel_id: "12345".to_string(),
-                    peer_pubkey: "03fedcba".to_string(),
-                    capacity: 1000000,
-                    local_balance: 500000,
-                    remote_balance: 500000,
-                    fees_earned: 1000,
-                    forwards_count: 100,
-                    uptime_percentage: 99.5,
-                }
-            ],
+            channels: vec![ChannelMetrics {
+                channel_id: "12345".to_string(),
+                peer_pubkey: "03fedcba".to_string(),
+                capacity: 1000000,
+                local_balance: 500000,
+                remote_balance: 500000,
+                fees_earned: 1000,
+                forwards_count: 100,
+                uptime_percentage: 99.5,
+            }],
             wallet_balance: 2000000,
             channel_balance: 5000000,
             total_capacity: 10000000,
@@ -231,7 +258,7 @@ mod tests {
         // Arrange
         let mock_server = MockServer::start().await;
         let node_pubkey = "02a1b2c3d4e5f6789abcdef123456789abcdef123456789abcdef123456789abcdef";
-        
+
         let mock_recommendations = vec![
             create_mock_recommendation(ActionType::AdjustFees, Priority::High),
             create_mock_recommendation(ActionType::OpenChannel, Priority::Medium),
@@ -252,7 +279,10 @@ mod tests {
         assert!(result.is_ok());
         let recommendations = result.unwrap();
         assert_eq!(recommendations.len(), 2);
-        assert!(matches!(recommendations[0].action_type, ActionType::AdjustFees));
+        assert!(matches!(
+            recommendations[0].action_type,
+            ActionType::AdjustFees
+        ));
         assert!(matches!(recommendations[0].priority, Priority::High));
         assert_eq!(recommendations[0].expected_roi_impact, 2.5);
     }
@@ -263,10 +293,11 @@ mod tests {
         let mock_server = MockServer::start().await;
         let node_pubkey = "02a1b2c3d4e5f6789abcdef123456789abcdef123456789abcdef123456789abcdef";
         let api_key = "test-api-key-123";
-        
-        let mock_recommendations = vec![
-            create_mock_recommendation(ActionType::RebalanceChannel, Priority::Low),
-        ];
+
+        let mock_recommendations = vec![create_mock_recommendation(
+            ActionType::RebalanceChannel,
+            Priority::Low,
+        )];
 
         Mock::given(method("GET"))
             .and(path(format!("/api/v1/recommendations/{}", node_pubkey)))
@@ -284,7 +315,10 @@ mod tests {
         assert!(result.is_ok());
         let recommendations = result.unwrap();
         assert_eq!(recommendations.len(), 1);
-        assert!(matches!(recommendations[0].action_type, ActionType::RebalanceChannel));
+        assert!(matches!(
+            recommendations[0].action_type,
+            ActionType::RebalanceChannel
+        ));
     }
 
     #[tokio::test]
@@ -457,7 +491,7 @@ mod tests {
         let mock_server = MockServer::start().await;
         let node_pubkey = "02a1b2c3d4e5f6789abcdef123456789abcdef123456789abcdef123456789abcdef";
         let timeframe_days = 30;
-        
+
         let mock_analysis = json!({
             "roi_trend": "positive",
             "efficiency_score": 87.5,
@@ -472,7 +506,7 @@ mod tests {
                     "description": "Optimize fees on 3 high-traffic channels"
                 },
                 {
-                    "type": "liquidity_management", 
+                    "type": "liquidity_management",
                     "impact": "medium",
                     "description": "Rebalance channels for better flow"
                 }
@@ -480,7 +514,10 @@ mod tests {
         });
 
         Mock::given(method("GET"))
-            .and(path(format!("/api/v1/analysis/{}/performance", node_pubkey)))
+            .and(path(format!(
+                "/api/v1/analysis/{}/performance",
+                node_pubkey
+            )))
             .respond_with(ResponseTemplate::new(200).set_body_json(&mock_analysis))
             .mount(&mock_server)
             .await;
@@ -488,7 +525,9 @@ mod tests {
         let client = MCPClient::new(mock_server.uri(), None);
 
         // Act
-        let result = client.get_performance_analysis(node_pubkey, timeframe_days).await;
+        let result = client
+            .get_performance_analysis(node_pubkey, timeframe_days)
+            .await;
 
         // Assert
         assert!(result.is_ok());
@@ -516,7 +555,9 @@ mod tests {
         let client = MCPClient::new(mock_server.uri(), None);
 
         // Act
-        let result = client.get_performance_analysis(node_pubkey, timeframe_days).await;
+        let result = client
+            .get_performance_analysis(node_pubkey, timeframe_days)
+            .await;
 
         // Assert
         assert!(result.is_ok());
@@ -537,10 +578,10 @@ mod tests {
             .mount(&mock_server)
             .await;
 
-        Mock::given(method("GET"))  
+        Mock::given(method("GET"))
             .and(path(format!("/api/v1/recommendations/{}", node_pubkey)))
             .respond_with(ResponseTemplate::new(200).set_body_json(vec![
-                create_mock_recommendation(ActionType::AdjustFees, Priority::High)
+                create_mock_recommendation(ActionType::AdjustFees, Priority::High),
             ]))
             .mount(&mock_server)
             .await;
@@ -574,14 +615,17 @@ mod tests {
     #[tokio::test]
     async fn test_error_handling_network_failure() {
         // Arrange - Use invalid URL to simulate network failure
-        let client = MCPClient::new("http://invalid-domain-that-does-not-exist.com".to_string(), None);
+        let client = MCPClient::new(
+            "http://invalid-domain-that-does-not-exist.com".to_string(),
+            None,
+        );
         let node_pubkey = "02a1b2c3d4e5f6789abcdef123456789abcdef123456789abcdef123456789abcdef";
 
         // Act
         let health_result = client.health_check().await;
         let recommendations_result = client.get_recommendations(node_pubkey).await;
 
-        // Assert  
+        // Assert
         assert!(health_result.is_ok());
         assert!(!health_result.unwrap()); // Should return false on network error
 
@@ -594,7 +638,7 @@ mod tests {
         let recommendation = create_mock_recommendation(ActionType::CloseChannel, Priority::Medium);
         let json_str = serde_json::to_string(&recommendation).unwrap();
         let deserialized: MCPRecommendation = serde_json::from_str(&json_str).unwrap();
-        
+
         assert_eq!(recommendation.id, deserialized.id);
         assert!(matches!(deserialized.action_type, ActionType::CloseChannel));
         assert!(matches!(deserialized.priority, Priority::Medium));
@@ -602,7 +646,7 @@ mod tests {
         let metrics = create_mock_node_metrics();
         let json_str = serde_json::to_string(&metrics).unwrap();
         let deserialized: NodeMetrics = serde_json::from_str(&json_str).unwrap();
-        
+
         assert_eq!(metrics.pubkey, deserialized.pubkey);
         assert_eq!(metrics.channels.len(), deserialized.channels.len());
     }

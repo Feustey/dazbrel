@@ -1,7 +1,7 @@
-use serde::{Deserialize, Serialize};
-use tracing::{info, warn, error};
 use anyhow::Result;
 use reqwest::Client;
+use serde::{Deserialize, Serialize};
+use tracing::{info, warn};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LightningTerminalData {
@@ -53,10 +53,10 @@ pub struct MempoolInfo {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FeeEstimates {
-    pub fastest: u32,    // sats/vB for next block
-    pub half_hour: u32,  // sats/vB for 3 blocks
-    pub hour: u32,       // sats/vB for 6 blocks
-    pub economy: u32,    // sats/vB for 144 blocks
+    pub fastest: u32,   // sats/vB for next block
+    pub half_hour: u32, // sats/vB for 3 blocks
+    pub hour: u32,      // sats/vB for 6 blocks
+    pub economy: u32,   // sats/vB for 144 blocks
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -116,34 +116,29 @@ impl UmbrelIntegrations {
                 .unwrap_or_else(|_| "http://bitcoin_bitcoind_1:8332".to_string()),
             bitcoin_rpc_user: std::env::var("BITCOIN_RPC_USER")
                 .unwrap_or_else(|_| "umbrel".to_string()),
-            bitcoin_rpc_pass: std::env::var("BITCOIN_RPC_PASS")
-                .unwrap_or_else(|_| "".to_string()),
+            bitcoin_rpc_pass: std::env::var("BITCOIN_RPC_PASS").unwrap_or_else(|_| "".to_string()),
         }
     }
 
     pub async fn get_lightning_terminal_data(&self) -> Result<LightningTerminalData> {
         info!("Fetching Lightning Terminal data from Umbrel");
-        
+
         // Mock data for now - will be replaced with real Lightning Terminal API calls
         let data = LightningTerminalData {
-            pool_accounts: vec![
-                PoolAccount {
-                    trader_key: "02abc123456789def".to_string(),
-                    value: 1000000,
-                    available_balance: 800000,
-                    version: 1,
-                }
-            ],
-            loop_swaps: vec![
-                LoopSwap {
-                    id: "swap_123456".to_string(),
-                    swap_type: "loop_out".to_string(),
-                    amount: 500000,
-                    cost: 2500,
-                    state: "success".to_string(),
-                    htlc_address: "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4".to_string(),
-                }
-            ],
+            pool_accounts: vec![PoolAccount {
+                trader_key: "02abc123456789def".to_string(),
+                value: 1000000,
+                available_balance: 800000,
+                version: 1,
+            }],
+            loop_swaps: vec![LoopSwap {
+                id: "swap_123456".to_string(),
+                swap_type: "loop_out".to_string(),
+                amount: 500000,
+                cost: 2500,
+                state: "success".to_string(),
+                htlc_address: "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4".to_string(),
+            }],
             terminal_sessions: vec![],
         };
 
@@ -152,7 +147,7 @@ impl UmbrelIntegrations {
 
     pub async fn get_electrs_data(&self) -> Result<ElectrsData> {
         info!("Fetching Electrs data from Umbrel");
-        
+
         // Mock data for now - will be replaced with real Electrs API calls
         let data = ElectrsData {
             block_height: 835000,
@@ -175,7 +170,7 @@ impl UmbrelIntegrations {
 
     pub async fn get_bitcoin_node_data(&self) -> Result<BitcoinNodeData> {
         info!("Fetching Bitcoin node data from Umbrel");
-        
+
         // Mock data for now - will be replaced with real Bitcoin RPC calls
         let data = BitcoinNodeData {
             blockchain_info: BlockchainInfo {
@@ -192,15 +187,13 @@ impl UmbrelIntegrations {
                 subversion: "/Satoshi:25.0.0/".to_string(),
                 protocol_version: 70016,
                 connections: 8,
-                networks: vec![
-                    NetworkDetails {
-                        name: "ipv4".to_string(),
-                        limited: false,
-                        reachable: true,
-                        proxy: "".to_string(),
-                        proxy_randomize_credentials: false,
-                    }
-                ],
+                networks: vec![NetworkDetails {
+                    name: "ipv4".to_string(),
+                    limited: false,
+                    reachable: true,
+                    proxy: "".to_string(),
+                    proxy_randomize_credentials: false,
+                }],
             },
             mempool_info: MempoolInfo {
                 size: 5000,
@@ -215,7 +208,7 @@ impl UmbrelIntegrations {
 
     pub async fn check_app_health(&self) -> Result<AppHealthStatus> {
         info!("Checking health of Umbrel apps");
-        
+
         let mut health_status = AppHealthStatus {
             lightning_terminal: false,
             electrs: false,
@@ -224,18 +217,28 @@ impl UmbrelIntegrations {
         };
 
         // Check Lightning Terminal
-        match self.client.get(&format!("{}/health", self.lightning_terminal_url)).send().await {
+        match self
+            .client
+            .get(&format!("{}/health", self.lightning_terminal_url))
+            .send()
+            .await
+        {
             Ok(response) if response.status().is_success() => {
                 health_status.lightning_terminal = true;
-            },
+            }
             _ => warn!("Lightning Terminal health check failed"),
         }
 
         // Check Electrs
-        match self.client.get(&format!("{}/api/blocks/tip/height", self.electrs_url)).send().await {
+        match self
+            .client
+            .get(&format!("{}/api/blocks/tip/height", self.electrs_url))
+            .send()
+            .await
+        {
             Ok(response) if response.status().is_success() => {
                 health_status.electrs = true;
-            },
+            }
             _ => warn!("Electrs health check failed"),
         }
 
@@ -247,7 +250,7 @@ impl UmbrelIntegrations {
 
     pub async fn get_network_graph_data(&self) -> Result<NetworkGraphData> {
         info!("Fetching Lightning Network graph data");
-        
+
         // This would typically come from LND's graph data
         let data = NetworkGraphData {
             num_nodes: 15000,

@@ -5,8 +5,7 @@ use axum::{
     Json as RequestJson,
 };
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
-use tracing::{info, error};
+use tracing::{error, info};
 use uuid::Uuid;
 
 use crate::middleware::validation::validate_input;
@@ -15,6 +14,7 @@ use crate::handlers::websocket::AutomationResult;
 use crate::models::{
     analytics::NodeAnalytics,
     automation::AutomationSettings,
+    ml::{AutomationReadiness, MLScorecard, OptimalWindow, SimulationOutcome, SmartRecommendation},
 };
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -30,6 +30,7 @@ pub struct AutoExecuteResponse {
     pub roi_impact: f64,
     pub execution_id: String,
     pub stats: AutomationStats,
+    pub automation: AutomationReadiness,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -46,19 +47,7 @@ pub struct SimulationRequest {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SimulationResponse {
-    pub recommendation_id: String,
-    pub roi_impact: f64,
-    pub success_probability: f64,
-    pub risk_level: String,
-    pub estimated_cost: u64,
-    pub timeline: Vec<SimulationStep>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct SimulationStep {
-    pub time: String,
-    pub action: String,
-    pub probability: f64,
+    pub outcome: SimulationOutcome,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -69,9 +58,7 @@ pub struct ScheduleRequest {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct OptimalTimeResponse {
-    pub optimal_time: String,
-    pub confidence: f64,
-    pub factors: Vec<String>,
+    pub window: OptimalWindow,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -95,11 +82,20 @@ pub struct DeepAnalysisResponse {
     pub recommendations_count: u32,
     pub analysis_time_ms: u64,
     pub insights: Vec<String>,
+    pub scorecard: MLScorecard,
+    pub recommendations: Vec<SmartRecommendation>,
+    pub automation: AutomationReadiness,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AutomationSettingsResponse {
+    pub settings: AutomationSettings,
+    pub readiness: AutomationReadiness,
 }
 
 // Auto-execute recommendation endpoint
 pub async fn auto_execute_recommendation(
-    State(app_state): State<Arc<crate::AppState>>,
+    State(app_state): State<crate::AppState>,
     RequestJson(payload): RequestJson<AutoExecuteRequest>,
 ) -> Result<Json<AutoExecuteResponse>, StatusCode> {
     // SÉCURITÉ: Validation d'entrée
@@ -107,59 +103,93 @@ pub async fn auto_execute_recommendation(
         error!("Invalid recommendation_id: {:?}", e);
         return Err(StatusCode::BAD_REQUEST);
     }
-    
+
     if let Err(e) = validate_input("message", &payload.execution_mode) {
         error!("Invalid execution_mode: {:?}", e);
         return Err(StatusCode::BAD_REQUEST);
     }
-    
-    info!("Auto-executing recommendation: {}", payload.recommendation_id);
-    
-    // Simulate execution time
-    tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
-    
-    // Simulate execution result
-    let success = rand::random::<f64>() > 0.1; // 90% success rate
-    let roi_impact = if success { 
-        2.5 + (rand::random::<f64>() * 3.0) // 2.5-5.5% ROI impact
-    } else { 
-        0.0 
+
+    info!(
+        "Auto-executing recommendation: {}",
+        payload.recommendation_id
+    );
+
+    // Phase 3 preview: analyse basée sur les données locales (mock si LND indisponible)
+    let channels = Vec::new();
+
+    let recommendations = app_state.ml_engine.build_recommendations(&channels);
+    let selected = recommendations
+        .iter()
+        .find(|r| r.id == payload.recommendation_id)
+        .or_else(|| recommendations.first())
+        .cloned()
+        .unwrap_or_else(|| SmartRecommendation {
+            id: payload.recommendation_id.clone(),
+            action_type: crate::api::mcp_client::ActionType::AdjustFees,
+            priority: crate::api::mcp_client::Priority::Medium,
+            expected_roi_impact: 2.1,
+            confidence: 0.86,
+            risk_score: 0.32,
+            rationale: vec!["Fallback recommendation (mock)".to_string()],
+            target_channels: vec![],
+        });
+
+    let settings = AutomationSettings::default();
+    let automation = app_state
+        .ml_engine
+        .automation_readiness(&settings, &channels);
+
+    let success = automation.ready || selected.confidence > 0.82;
+    let roi_impact = if success {
+        selected.expected_roi_impact
+    } else {
+        0.0
     };
-    
+
+    // Simulate execution time
+    tokio::time::sleep(tokio::time::Duration::from_millis(350)).await;
+
     let execution_id = Uuid::new_v4().to_string();
-    
+
     let response = AutoExecuteResponse {
         success,
         message: if success {
-            format!("Recommendation executed successfully. ROI improved by +{}%", roi_impact)
+            format!(
+                "Recommendation exécutée avec succès. ROI +{:.2}%",
+                roi_impact
+            )
         } else {
             "Execution failed due to market conditions".to_string()
         },
         roi_impact,
         execution_id: execution_id.clone(),
         stats: AutomationStats {
-            actions_today: 7,
-            success_rate: 92.5,
-            roi_gained: 18.3,
+            actions_today: 3,
+            success_rate: 93.0,
+            roi_gained: 12.4,
         },
+        automation,
     };
-    
+
     // Broadcast automation result via WebSocket
     let automation_result = AutomationResult {
-        recommendation_id: payload.recommendation_id,
+        recommendation_id: payload.recommendation_id.clone(),
         success,
         roi_impact,
         execution_time_ms: 500,
         message: response.message.clone(),
     };
-    
-    app_state.ws_state.broadcast_automation_result(automation_result);
-    
+
+    app_state
+        .ws_state
+        .broadcast_automation_result(automation_result);
+
     Ok(Json(response))
 }
 
 // Simulate recommendation endpoint
 pub async fn simulate_recommendation(
+    State(app_state): State<crate::AppState>,
     RequestJson(payload): RequestJson<SimulationRequest>,
 ) -> Result<Json<SimulationResponse>, StatusCode> {
     // SÉCURITÉ: Validation d'entrée
@@ -167,37 +197,23 @@ pub async fn simulate_recommendation(
         error!("Invalid recommendation_id in simulation: {:?}", e);
         return Err(StatusCode::BAD_REQUEST);
     }
-    
+
     info!("Simulating recommendation: {}", payload.recommendation_id);
-    
-    // Simulate analysis time
-    tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
-    
-    let simulation = SimulationResponse {
-        recommendation_id: payload.recommendation_id,
-        roi_impact: 3.2 + (rand::random::<f64>() * 2.0),
-        success_probability: 85.0 + (rand::random::<f64>() * 10.0),
-        risk_level: ["Low", "Medium", "High"][rand::random::<usize>() % 3].to_string(),
-        estimated_cost: 1000 + (rand::random::<u64>() % 5000),
-        timeline: vec![
-            SimulationStep {
-                time: "T+0s".to_string(),
-                action: "Initiate channel opening".to_string(),
-                probability: 98.5,
-            },
-            SimulationStep {
-                time: "T+30s".to_string(),
-                action: "Peer confirmation".to_string(),
-                probability: 92.3,
-            },
-            SimulationStep {
-                time: "T+10m".to_string(),
-                action: "Channel active".to_string(),
-                probability: 87.1,
-            },
-        ],
-    };
-    
+
+    let channels = Vec::new();
+
+    let recommendations = app_state.ml_engine.build_recommendations(&channels);
+    let selected = recommendations
+        .iter()
+        .find(|r| r.id == payload.recommendation_id)
+        .or_else(|| recommendations.first())
+        .cloned()
+        .ok_or(StatusCode::NOT_FOUND)?;
+
+    let outcome = app_state.ml_engine.simulate(&selected);
+
+    let simulation = SimulationResponse { outcome };
+
     Ok(Json(simulation))
 }
 
@@ -205,20 +221,24 @@ pub async fn simulate_recommendation(
 pub async fn schedule_recommendation(
     RequestJson(payload): RequestJson<ScheduleRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    info!("Scheduling recommendation {} for {}", payload.recommendation_id, payload.scheduled_time);
-    
+    info!(
+        "Scheduling recommendation {} for {}",
+        payload.recommendation_id, payload.scheduled_time
+    );
+
     let response = serde_json::json!({
         "success": true,
         "scheduled_time": payload.scheduled_time,
         "message": "Recommendation scheduled successfully",
         "scheduling_id": Uuid::new_v4().to_string()
     });
-    
+
     Ok(Json(response))
 }
 
 // Get optimal execution time
 pub async fn get_optimal_time(
+    State(app_state): State<crate::AppState>,
     Path(recommendation_id): Path<String>,
 ) -> Result<Json<OptimalTimeResponse>, StatusCode> {
     // SÉCURITÉ: Validation du paramètre de chemin
@@ -226,23 +246,21 @@ pub async fn get_optimal_time(
         error!("Invalid recommendation_id in path: {:?}", e);
         return Err(StatusCode::BAD_REQUEST);
     }
-    
-    info!("Getting optimal time for recommendation: {}", recommendation_id);
-    
-    // Simulate optimal time calculation
-    let optimal_time = chrono::Utc::now() + chrono::Duration::hours(2);
-    
-    let response = OptimalTimeResponse {
-        optimal_time: optimal_time.format("%Y-%m-%d %H:%M UTC").to_string(),
-        confidence: 87.5,
-        factors: vec![
-            "Low network congestion".to_string(),
-            "Optimal peer activity".to_string(),
-            "Favorable market conditions".to_string(),
-        ],
-    };
-    
-    Ok(Json(response))
+
+    info!(
+        "Getting optimal time for recommendation: {}",
+        recommendation_id
+    );
+
+    let recommendations = app_state.ml_engine.build_recommendations(&[]);
+    let selected = recommendations
+        .into_iter()
+        .find(|r| r.id == recommendation_id)
+        .unwrap_or_else(|| app_state.ml_engine.build_recommendations(&[]).remove(0));
+
+    let window = app_state.ml_engine.optimal_window(&selected);
+
+    Ok(Json(OptimalTimeResponse { window }))
 }
 
 // Update automation mode
@@ -250,10 +268,10 @@ pub async fn update_automation_mode(
     RequestJson(payload): RequestJson<AutomationModeRequest>,
 ) -> Result<StatusCode, StatusCode> {
     info!("Updating automation mode to: {}", payload.mode);
-    
+
     // Here you would update the automation settings in your database
     // For now, we'll just log and return success
-    
+
     Ok(StatusCode::OK)
 }
 
@@ -262,9 +280,9 @@ pub async fn update_max_actions(
     RequestJson(payload): RequestJson<MaxActionsRequest>,
 ) -> Result<StatusCode, StatusCode> {
     info!("Updating max actions to: {}", payload.max_actions);
-    
+
     // Here you would update the automation settings in your database
-    
+
     Ok(StatusCode::OK)
 }
 
@@ -273,75 +291,95 @@ pub async fn toggle_auto_execution(
     RequestJson(payload): RequestJson<AutoExecutionToggleRequest>,
 ) -> Result<StatusCode, StatusCode> {
     info!("Toggling auto-execution to: {}", payload.enabled);
-    
+
     // Here you would update the automation settings in your database
-    
+
     Ok(StatusCode::OK)
 }
 
 // Force deep analysis
 pub async fn force_deep_analysis(
-    State(app_state): State<Arc<crate::AppState>>,
+    State(app_state): State<crate::AppState>,
 ) -> Result<Json<DeepAnalysisResponse>, StatusCode> {
     info!("Initiating force deep analysis");
-    
+
     // Simulate deep analysis time
-    tokio::time::sleep(tokio::time::Duration::from_millis(3000)).await;
-    
-    let recommendations_count = rand::random::<u32>() % 5; // 0-4 new recommendations
-    
+    tokio::time::sleep(tokio::time::Duration::from_millis(1200)).await;
+
+    let channels = Vec::new();
+
+    let scorecard = app_state.ml_engine.score_channels(&channels);
+    let insights = app_state.ml_engine.derive_insights(&channels);
+    let recommendations = app_state.ml_engine.build_recommendations(&channels);
+    let automation = app_state
+        .ml_engine
+        .automation_readiness(&AutomationSettings::default(), &channels);
+
+    for rec in &recommendations {
+        let payload = serde_json::json!({
+            "id": rec.id,
+            "action_type": format!("{:?}", rec.action_type),
+            "priority": format!("{:?}", rec.priority),
+            "expected_roi_impact": rec.expected_roi_impact,
+            "description": rec.rationale.get(0).cloned().unwrap_or_default(),
+            "confidence": rec.confidence * 100.0,
+            "risk_level": rec.risk_score,
+        });
+        app_state.ws_state.broadcast_new_recommendation(payload);
+    }
+
     let response = DeepAnalysisResponse {
         success: true,
-        recommendations_count,
-        analysis_time_ms: 3000,
-        insights: vec![
-            "Identified sub-optimal fee rates on 3 channels".to_string(),
-            "Found potential rebalancing opportunities".to_string(),
-            "Detected new high-performing peers".to_string(),
-        ],
+        recommendations_count: recommendations.len() as u32,
+        analysis_time_ms: 1200,
+        insights: insights.into_iter().map(|i| i.detail).collect(),
+        scorecard,
+        recommendations,
+        automation,
     };
-    
-    // If new recommendations found, broadcast them
-    if recommendations_count > 0 {
-        for i in 0..recommendations_count {
-            let new_recommendation = serde_json::json!({
-                "id": Uuid::new_v4().to_string(),
-                "action_type": "AdjustFees",
-                "priority": "Medium",
-                "expected_roi_impact": 1.5 + (rand::random::<f64>() * 2.0),
-                "description": format!("Optimize fees on channel #{}", i + 1),
-                "confidence": 85.0 + (rand::random::<f64>() * 10.0),
-                "risk_level": "Low"
-            });
-            
-            app_state.ws_state.broadcast_new_recommendation(new_recommendation);
-        }
-    }
-    
+
     Ok(Json(response))
 }
 
 // Get automation settings
-pub async fn get_automation_settings() -> Result<Json<AutomationSettings>, StatusCode> {
+pub async fn get_automation_settings(
+    State(app_state): State<crate::AppState>,
+) -> Result<Json<AutomationSettingsResponse>, StatusCode> {
     let settings = AutomationSettings::default();
-    Ok(Json(settings))
+
+    let channels = Vec::new();
+
+    let readiness = app_state
+        .ml_engine
+        .automation_readiness(&settings, &channels);
+
+    Ok(Json(AutomationSettingsResponse {
+        settings,
+        readiness,
+    }))
 }
 
 // Get node analytics
-pub async fn get_node_analytics() -> Result<Json<NodeAnalytics>, StatusCode> {
+pub async fn get_node_analytics(
+    State(app_state): State<crate::AppState>,
+) -> Result<Json<NodeAnalytics>, StatusCode> {
+    let channels = Vec::new();
+
+    let scorecard = app_state.ml_engine.score_channels(&channels);
+
     let analytics = NodeAnalytics {
-        performance_score: 87.5,
-        roi_current: 15.8,
-        roi_predicted_30d: 18.2,
-        efficiency_score: 82.1,
-        risk_score: 23.7,
-        centrality_score: 91.3,
-        liquidity_score: 88.9,
-        reliability_score: 94.2,
+        performance_score: (scorecard.confidence * 100.0).round(),
+        roi_current: (scorecard.predicted_roi_30d - 1.8).max(10.0),
+        roi_predicted_30d: scorecard.predicted_roi_30d,
+        efficiency_score: 80.0 + (scorecard.confidence * 10.0),
+        risk_score: (scorecard.risk_index * 100.0).round(),
+        centrality_score: 90.0,
+        liquidity_score: (scorecard.capacity_saturation).min(100.0),
+        reliability_score: 93.0,
         growth_potential: 76.8,
         last_calculated: chrono::Utc::now(),
     };
-    
+
     Ok(Json(analytics))
 }
 
@@ -362,7 +400,7 @@ pub async fn get_competitive_analysis() -> Result<Json<serde_json::Value>, Statu
             "amboss": 78.5
         }
     });
-    
+
     Ok(Json(analysis))
 }
 
@@ -380,6 +418,6 @@ pub async fn health_check() -> Result<Json<serde_json::Value>, StatusCode> {
             "real_time_updates": true
         }
     });
-    
+
     Ok(Json(health))
 }
