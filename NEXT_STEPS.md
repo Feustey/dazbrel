@@ -21,6 +21,13 @@
   - Documentation complète (DEPLOYMENT.md)
   - Fichiers de configuration (.env.example)
 
+## 🟢 Phase 3 - Travaux engagés
+
+- [x] **Moteur ML local initial** pour scorer les canaux, générer des recommandations prioritaires et projeter le ROI (30/90/365j)
+- [x] **Lecture temps-réel des canaux (mock ou LND)** pour alimenter l'analyse profonde et les WebSockets
+- [x] **Préparation à l'automatisation** : calcul de readiness, facteurs bloquants et seuils de confiance ML
+- [x] **End-points avancés révisés** (simulation, auto-exec, deep analysis, fenêtre optimale) branchés sur le moteur ML
+
 ## 🚀 Comment tester maintenant
 
 ### Option 1 : Test rapide avec le script automatique

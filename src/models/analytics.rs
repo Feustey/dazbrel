@@ -1,17 +1,17 @@
-use serde::{Deserialize, Serialize};
 use crate::api::local_lightning_client::LocalChannelInfo;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NodeAnalytics {
-    pub performance_score: f64,       // 0-100 composite score
-    pub roi_current: f64,             // Current ROI percentage
-    pub roi_predicted_30d: f64,       // Predicted 30-day ROI
-    pub efficiency_score: f64,        // Capital efficiency score
-    pub risk_score: f64,              // Risk assessment score
-    pub centrality_score: f64,        // Network position score
-    pub liquidity_score: f64,         // Liquidity management score
-    pub reliability_score: f64,       // Node reliability score
-    pub growth_potential: f64,        // Growth opportunity score
+    pub performance_score: f64, // 0-100 composite score
+    pub roi_current: f64,       // Current ROI percentage
+    pub roi_predicted_30d: f64, // Predicted 30-day ROI
+    pub efficiency_score: f64,  // Capital efficiency score
+    pub risk_score: f64,        // Risk assessment score
+    pub centrality_score: f64,  // Network position score
+    pub liquidity_score: f64,   // Liquidity management score
+    pub reliability_score: f64, // Node reliability score
+    pub growth_potential: f64,  // Growth opportunity score
     pub last_calculated: chrono::DateTime<chrono::Utc>,
 }
 
@@ -27,41 +27,41 @@ pub struct ChannelAnalytics {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChannelPerformanceMetrics {
-    pub forwarding_success_rate: f64,    // % of successful forwards
-    pub average_htlc_size: u64,          // Average HTLC amount
-    pub forwards_per_day: f64,           // Daily forwarding volume
-    pub total_fees_earned: u64,          // Total fees in satoshis
-    pub fees_per_day_avg: f64,           // Average daily fees
-    pub uptime_percentage: f64,          // Channel uptime %
-    pub rebalancing_frequency: f64,      // Rebalances per week
+    pub forwarding_success_rate: f64, // % of successful forwards
+    pub average_htlc_size: u64,       // Average HTLC amount
+    pub forwards_per_day: f64,        // Daily forwarding volume
+    pub total_fees_earned: u64,       // Total fees in satoshis
+    pub fees_per_day_avg: f64,        // Average daily fees
+    pub uptime_percentage: f64,       // Channel uptime %
+    pub rebalancing_frequency: f64,   // Rebalances per week
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChannelProfitabilityMetrics {
-    pub roi_annualized: f64,             // Annualized ROI %
-    pub profit_per_sat: f64,             // Profit per satoshi locked
-    pub fee_optimization_score: f64,     // 0-100 fee optimization
-    pub capital_efficiency: f64,         // Capital utilization score
-    pub opportunity_cost: f64,           // Cost of locked capital
-    pub break_even_days: f64,            // Days to break even
+    pub roi_annualized: f64,         // Annualized ROI %
+    pub profit_per_sat: f64,         // Profit per satoshi locked
+    pub fee_optimization_score: f64, // 0-100 fee optimization
+    pub capital_efficiency: f64,     // Capital utilization score
+    pub opportunity_cost: f64,       // Cost of locked capital
+    pub break_even_days: f64,        // Days to break even
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChannelRiskMetrics {
-    pub peer_reliability_score: f64,     // Peer reliability 0-100
-    pub liquidity_risk: f64,             // Risk of liquidity depletion
-    pub force_close_probability: f64,    // Probability of force close
-    pub routing_competition: f64,        // Competition level for routes
-    pub concentration_risk: f64,         // Risk from capital concentration
+    pub peer_reliability_score: f64,  // Peer reliability 0-100
+    pub liquidity_risk: f64,          // Risk of liquidity depletion
+    pub force_close_probability: f64, // Probability of force close
+    pub routing_competition: f64,     // Competition level for routes
+    pub concentration_risk: f64,      // Risk from capital concentration
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChannelOptimization {
     pub optimization_type: OptimizationType,
     pub description: String,
-    pub expected_improvement: f64,       // Expected improvement %
-    pub implementation_cost: u64,        // Cost in satoshis
-    pub confidence_level: f64,           // Confidence in prediction
+    pub expected_improvement: f64, // Expected improvement %
+    pub implementation_cost: u64,  // Cost in satoshis
+    pub confidence_level: f64,     // Confidence in prediction
     pub priority: OptimizationPriority,
 }
 
@@ -210,9 +210,9 @@ pub enum RiskLevel {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TimeHorizon {
-    Short,    // 1-30 days
-    Medium,   // 30-90 days
-    Long,     // 90+ days
+    Short,  // 1-30 days
+    Medium, // 30-90 days
+    Long,   // 90+ days
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -229,7 +229,7 @@ impl NodeAnalytics {
         // Simplified calculation - in real implementation this would use ML models
         let total_capacity: u64 = channels.iter().map(|c| c.capacity).sum();
         let active_channels = channels.iter().filter(|c| c.active).count();
-        
+
         let performance_score = if active_channels > 0 {
             (active_channels as f64 / channels.len() as f64) * 100.0
         } else {

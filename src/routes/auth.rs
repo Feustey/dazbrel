@@ -4,11 +4,11 @@ use axum::{
     response::{Html, IntoResponse, Redirect},
     Form,
 };
+use handlebars::Handlebars;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tower_sessions::Session;
 use tracing::{error, info, warn};
-use handlebars::Handlebars;
 use uuid::Uuid;
 
 use crate::auth::{AuthService, User};
@@ -48,7 +48,7 @@ pub async fn login_page(
     // Vérifier si l'utilisateur est déjà connecté
     if let Ok(Some(_)) = get_current_user(&app_state.auth_service, &session).await {
         return Ok(Html(
-            "<script>window.location.href='/';</script>".to_string()
+            "<script>window.location.href='/';</script>".to_string(),
         ));
     }
 
@@ -58,7 +58,8 @@ pub async fn login_page(
         "error": query.error
     });
 
-    let html = app_state.handlebars
+    let html = app_state
+        .handlebars
         .render("login", &context)
         .map_err(|e| {
             error!("Erreur de rendu du template login: {}", e);
@@ -74,16 +75,23 @@ pub async fn login_post(
     session: Session,
     Form(login_request): Form<LoginRequest>,
 ) -> impl IntoResponse {
-    match app_state.auth_service.authenticate(&login_request.username, &login_request.password).await {
+    match app_state
+        .auth_service
+        .authenticate(&login_request.username, &login_request.password)
+        .await
+    {
         Ok(Some(user)) => {
             // Connexion réussie
             if let Err(e) = login_user(&session, &user).await {
                 error!("Erreur lors de la création de session: {}", e);
-                return render_login_error(&app_state.handlebars, "Erreur interne lors de la connexion");
+                return render_login_error(
+                    &app_state.handlebars,
+                    "Erreur interne lors de la connexion",
+                );
             }
 
             info!("Utilisateur connecté: {}", user.username);
-            
+
             // Rediriger vers la page de changement de mot de passe si nécessaire
             if user.must_change_password {
                 Redirect::to("/change-password").into_response()
@@ -92,8 +100,14 @@ pub async fn login_post(
             }
         }
         Ok(None) => {
-            warn!("Tentative de connexion échouée pour: {}", login_request.username);
-            render_login_error(&app_state.handlebars, "Nom d'utilisateur ou mot de passe incorrect")
+            warn!(
+                "Tentative de connexion échouée pour: {}",
+                login_request.username
+            );
+            render_login_error(
+                &app_state.handlebars,
+                "Nom d'utilisateur ou mot de passe incorrect",
+            )
         }
         Err(e) => {
             error!("Erreur lors de l'authentification: {}", e);
@@ -122,7 +136,8 @@ pub async fn change_password_page(
         "must_change_password": user.must_change_password
     });
 
-    let html = app_state.handlebars
+    let html = app_state
+        .handlebars
         .render("change-password", &context)
         .map_err(|e| {
             error!("Erreur de rendu du template change-password: {}", e);
@@ -150,20 +165,30 @@ pub async fn change_password_post(
 
     // Valider que les nouveaux mots de passe correspondent
     if change_request.new_password != change_request.confirm_password {
-        return render_change_password_error(&app_state.handlebars, "Les nouveaux mots de passe ne correspondent pas");
+        return render_change_password_error(
+            &app_state.handlebars,
+            "Les nouveaux mots de passe ne correspondent pas",
+        );
     }
 
-    match app_state.auth_service.change_password(
-        user.id,
-        &change_request.current_password,
-        &change_request.new_password,
-    ).await {
+    match app_state
+        .auth_service
+        .change_password(
+            user.id,
+            &change_request.current_password,
+            &change_request.new_password,
+        )
+        .await
+    {
         Ok(true) => {
             info!("Mot de passe changé avec succès pour: {}", user.username);
             Redirect::to("/?password_changed=true").into_response()
         }
         Ok(false) => {
-            warn!("Échec du changement de mot de passe pour: {}", user.username);
+            warn!(
+                "Échec du changement de mot de passe pour: {}",
+                user.username
+            );
             render_change_password_error(&app_state.handlebars, "Mot de passe actuel incorrect")
         }
         Err(e) => {
@@ -205,7 +230,10 @@ pub async fn auth_status(
             axum::Json(response).into_response()
         }
         Err(e) => {
-            error!("Erreur lors de la vérification du statut d'authentification: {}", e);
+            error!(
+                "Erreur lors de la vérification du statut d'authentification: {}",
+                e
+            );
             StatusCode::INTERNAL_SERVER_ERROR.into_response()
         }
     }
@@ -229,7 +257,10 @@ fn render_login_error(handlebars: &Handlebars, error_message: &str) -> axum::res
     }
 }
 
-fn render_change_password_error(handlebars: &Handlebars, error_message: &str) -> axum::response::Response {
+fn render_change_password_error(
+    handlebars: &Handlebars,
+    error_message: &str,
+) -> axum::response::Response {
     let context = json!({
         "error": error_message
     });
@@ -237,7 +268,10 @@ fn render_change_password_error(handlebars: &Handlebars, error_message: &str) ->
     match handlebars.render("change-password", &context) {
         Ok(html) => Html(html).into_response(),
         Err(e) => {
-            error!("Erreur de rendu du template d'erreur de changement de mot de passe: {}", e);
+            error!(
+                "Erreur de rendu du template d'erreur de changement de mot de passe: {}",
+                e
+            );
             StatusCode::INTERNAL_SERVER_ERROR.into_response()
         }
     }
@@ -248,7 +282,9 @@ async fn login_user(session: &Session, user: &User) -> Result<(), tower_sessions
     session.insert("user_id", user.id.to_string()).await?;
     session.insert("username", &user.username).await?;
     session.insert("is_admin", user.is_admin).await?;
-    session.insert("must_change_password", user.must_change_password).await?;
+    session
+        .insert("must_change_password", user.must_change_password)
+        .await?;
     Ok(())
 }
 
@@ -273,21 +309,29 @@ pub async fn init_default_user(
     match app_state.auth_service.initialize_default_user().await {
         Ok(password) => {
             if password != "Utilisateur existant" {
-                info!("Utilisateur par défaut initialisé avec mot de passe: {}", password);
+                info!(
+                    "Utilisateur par défaut initialisé avec mot de passe: {}",
+                    password
+                );
                 axum::Json(json!({
                     "success": true,
                     "message": "Utilisateur créé",
                     "password": password
-                })).into_response()
+                }))
+                .into_response()
             } else {
                 axum::Json(json!({
                     "success": true,
                     "message": "Utilisateur déjà existant"
-                })).into_response()
+                }))
+                .into_response()
             }
         }
         Err(e) => {
-            error!("Erreur lors de l'initialisation de l'utilisateur par défaut: {}", e);
+            error!(
+                "Erreur lors de l'initialisation de l'utilisateur par défaut: {}",
+                e
+            );
             StatusCode::INTERNAL_SERVER_ERROR.into_response()
         }
     }

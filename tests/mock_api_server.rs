@@ -1,10 +1,10 @@
 // Mock API Server for simulating api.dazno.de during development and testing
 
-use wiremock::{Mock, MockServer, ResponseTemplate, Request};
-use wiremock::matchers::{method, path, path_regex, header, body_json};
 use serde_json::json;
 use std::time::Duration;
 use uuid::Uuid;
+use wiremock::matchers::{body_json, header, method, path, path_regex};
+use wiremock::{Mock, MockServer, Request, ResponseTemplate};
 
 pub struct MockDaznoApi {
     pub server: MockServer,
@@ -15,12 +15,12 @@ impl MockDaznoApi {
     pub async fn start() -> Self {
         let server = MockServer::start().await;
         let base_url = server.uri();
-        
+
         let mut mock_api = Self { server, base_url };
         mock_api.setup_default_endpoints().await;
         mock_api
     }
-    
+
     async fn setup_default_endpoints(&mut self) {
         self.setup_health_endpoint().await;
         self.setup_recommendations_endpoint().await;
@@ -28,7 +28,7 @@ impl MockDaznoApi {
         self.setup_metrics_submission_endpoint().await;
         self.setup_action_result_endpoint().await;
     }
-    
+
     async fn setup_health_endpoint(&self) {
         Mock::given(method("GET"))
             .and(path("/api/v1/health"))
@@ -39,7 +39,7 @@ impl MockDaznoApi {
                 "timestamp": "2024-01-15T10:30:00Z",
                 "services": {
                     "ml_engine": "healthy",
-                    "recommendation_service": "healthy", 
+                    "recommendation_service": "healthy",
                     "analytics_db": "healthy",
                     "lightning_network_monitor": "healthy"
                 },
@@ -52,13 +52,13 @@ impl MockDaznoApi {
             .mount(&self.server)
             .await;
     }
-    
+
     async fn setup_recommendations_endpoint(&self) {
         Mock::given(method("GET"))
             .and(path_regex(r"/api/v1/recommendations/[0-9a-f]{66}"))
             .respond_with(|req: &Request| {
                 let node_pubkey = req.url.path().split('/').last().unwrap();
-                
+
                 // Generate realistic recommendations based on node pubkey
                 let recommendations = vec![
                     json!({
@@ -86,13 +86,13 @@ impl MockDaznoApi {
                     }),
                     json!({
                         "id": format!("rec_{}_rebalance", Uuid::new_v4().to_string()[..8].to_string()),
-                        "action_type": "RebalanceChannel", 
+                        "action_type": "RebalanceChannel",
                         "priority": "Medium",
                         "expected_roi_impact": 1.8,
                         "confidence": 87.3,
                         "parameters": {
                             "source_channel": "867530986420135579",
-                            "target_channel": "825645821654876544", 
+                            "target_channel": "825645821654876544",
                             "amount_sats": 500000,
                             "max_fee_sats": 1000,
                             "routing_hints": [
@@ -107,7 +107,7 @@ impl MockDaznoApi {
                     json!({
                         "id": format!("rec_{}_new_channel", Uuid::new_v4().to_string()[..8].to_string()),
                         "action_type": "OpenChannel",
-                        "priority": "Low", 
+                        "priority": "Low",
                         "expected_roi_impact": 2.5,
                         "confidence": 78.9,
                         "parameters": {
@@ -123,11 +123,11 @@ impl MockDaznoApi {
                             }
                         },
                         "created_at": "2024-01-15T10:20:00Z",
-                        "expires_at": "2024-01-16T10:20:00Z", 
+                        "expires_at": "2024-01-16T10:20:00Z",
                         "description": "Open channel to well-connected node to expand routing opportunities and access new markets"
                     })
                 ];
-                
+
                 ResponseTemplate::new(200)
                     .set_body_json(recommendations)
                     .set_delay(Duration::from_millis(150)) // Simulate ML processing time
@@ -135,7 +135,7 @@ impl MockDaznoApi {
             .mount(&self.server)
             .await;
     }
-    
+
     async fn setup_performance_analysis_endpoint(&self) {
         Mock::given(method("GET"))
             .and(path_regex(r"/api/v1/analysis/[0-9a-f]{66}/performance"))
@@ -143,7 +143,7 @@ impl MockDaznoApi {
                 let node_pubkey = req.url.path().split('/').nth(3).unwrap();
                 let query_params: std::collections::HashMap<_, _> = req.url.query_pairs().collect();
                 let days = query_params.get("days").unwrap_or(&"30".into()).parse::<u32>().unwrap_or(30);
-                
+
                 // Generate analysis based on timeframe
                 let (roi_trend, roi_change) = match days {
                     7 => ("stable", 0.5),
@@ -151,7 +151,7 @@ impl MockDaznoApi {
                     90 => ("very_positive", 5.8),
                     _ => ("positive", 2.1),
                 };
-                
+
                 ResponseTemplate::new(200).set_body_json(json!({
                     "node_pubkey": node_pubkey,
                     "analysis_period_days": days,
@@ -186,7 +186,7 @@ impl MockDaznoApi {
                             "recommended_actions": ["fee_adjustment", "liquidity_rebalance"]
                         },
                         {
-                            "channel_id": "867530986420135579", 
+                            "channel_id": "867530986420135579",
                             "efficiency_score": 78.9,
                             "revenue_contribution": 28.7,
                             "optimization_potential": "medium",
@@ -207,7 +207,7 @@ impl MockDaznoApi {
                         {
                             "category": "liquidity_management",
                             "impact": "medium",
-                            "confidence": 87.3, 
+                            "confidence": 87.3,
                             "potential_revenue_increase": "8%",
                             "description": "Liquidity distribution could be optimized for 12% better routing success",
                             "suggested_actions": ["loop_out", "submarine_swap", "circular_rebalance"],
@@ -243,7 +243,7 @@ impl MockDaznoApi {
                         },
                         "risk_factors": [
                             "Network congestion during high-fee periods",
-                            "Competitor fee adjustments", 
+                            "Competitor fee adjustments",
                             "Channel force closures"
                         ]
                     },
@@ -259,7 +259,7 @@ impl MockDaznoApi {
             .mount(&self.server)
             .await;
     }
-    
+
     async fn setup_metrics_submission_endpoint(&self) {
         Mock::given(method("POST"))
             .and(path("/api/v1/metrics"))
@@ -269,21 +269,21 @@ impl MockDaznoApi {
                 let content_type = req.headers.get("content-type")
                     .and_then(|v| v.to_str().ok())
                     .unwrap_or("");
-                
+
                 if !content_type.contains("application/json") {
                     return ResponseTemplate::new(400).set_body_json(json!({
                         "error": "Invalid content type",
                         "expected": "application/json"
                     }));
                 }
-                
+
                 // Simulate processing time based on payload size
                 let delay = if req.body.len() > 100_000 {
                     Duration::from_millis(500) // Large payload
                 } else {
                     Duration::from_millis(100) // Normal payload
                 };
-                
+
                 let response_body = json!({
                     "status": "accepted",
                     "message": "Node metrics successfully processed",
@@ -293,7 +293,7 @@ impl MockDaznoApi {
                     "authenticated": has_auth,
                     "next_submission_recommended": "2024-01-15T11:40:00Z"
                 });
-                
+
                 ResponseTemplate::new(201)
                     .set_body_json(response_body)
                     .set_delay(delay)
@@ -301,23 +301,24 @@ impl MockDaznoApi {
             .mount(&self.server)
             .await;
     }
-    
+
     async fn setup_action_result_endpoint(&self) {
         Mock::given(method("POST"))
             .and(path("/api/v1/actions/result"))
             .respond_with(|_req: &Request| {
-                ResponseTemplate::new(200).set_body_json(json!({
-                    "status": "recorded",
-                    "message": "Action result successfully recorded",
-                    "recorded_at": "2024-01-15T10:45:00Z",
-                    "will_improve_recommendations": true
-                }))
-                .set_delay(Duration::from_millis(50))
+                ResponseTemplate::new(200)
+                    .set_body_json(json!({
+                        "status": "recorded",
+                        "message": "Action result successfully recorded",
+                        "recorded_at": "2024-01-15T10:45:00Z",
+                        "will_improve_recommendations": true
+                    }))
+                    .set_delay(Duration::from_millis(50))
             })
             .mount(&self.server)
             .await;
     }
-    
+
     // Setup error scenarios for testing
     async fn setup_error_scenarios(&self) {
         // Rate limiting simulation
@@ -331,7 +332,7 @@ impl MockDaznoApi {
             })))
             .mount(&self.server)
             .await;
-        
+
         // Service unavailable
         Mock::given(method("GET"))
             .and(path("/api/v1/unavailable"))
@@ -342,7 +343,7 @@ impl MockDaznoApi {
             })))
             .mount(&self.server)
             .await;
-        
+
         // Invalid node pubkey
         Mock::given(method("GET"))
             .and(path_regex(r"/api/v1/recommendations/invalid.*"))
@@ -353,7 +354,7 @@ impl MockDaznoApi {
             })))
             .mount(&self.server)
             .await;
-        
+
         // Node not found
         Mock::given(method("GET"))
             .and(path_regex(r"/api/v1/recommendations/02000000.*"))
@@ -365,7 +366,7 @@ impl MockDaznoApi {
             .mount(&self.server)
             .await;
     }
-    
+
     // Setup premium features mock (requires API key)
     async fn setup_premium_endpoints(&self) {
         Mock::given(method("GET"))
@@ -392,7 +393,7 @@ impl MockDaznoApi {
             })))
             .mount(&self.server)
             .await;
-        
+
         // Premium without auth should fail
         Mock::given(method("GET"))
             .and(path("/api/v1/premium/advanced-analytics"))
@@ -409,70 +410,80 @@ impl MockDaznoApi {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use dazno_umbrel::api::mcp_client::{MCPClient, NodeMetrics, ChannelMetrics};
     use chrono::Utc;
-    
+    use dazno_umbrel::api::mcp_client::{ChannelMetrics, MCPClient, NodeMetrics};
+
     #[tokio::test]
     async fn test_mock_api_health() {
         let mock_api = MockDaznoApi::start().await;
         let client = MCPClient::new(mock_api.base_url, None);
-        
+
         let health = client.health_check().await.unwrap();
         assert!(health);
     }
-    
+
     #[tokio::test]
     async fn test_mock_api_recommendations() {
         let mock_api = MockDaznoApi::start().await;
         let client = MCPClient::new(mock_api.base_url, None);
-        
+
         let node_pubkey = "02a1b2c3d4e5f6789abcdef123456789abcdef123456789abcdef123456789abcdef";
         let recommendations = client.get_recommendations(node_pubkey).await.unwrap();
-        
+
         assert_eq!(recommendations.len(), 3);
-        assert!(recommendations.iter().any(|r| matches!(r.action_type, dazno_umbrel::api::mcp_client::ActionType::AdjustFees)));
+        assert!(recommendations.iter().any(|r| matches!(
+            r.action_type,
+            dazno_umbrel::api::mcp_client::ActionType::AdjustFees
+        )));
     }
-    
+
     #[tokio::test]
     async fn test_mock_api_performance_analysis() {
         let mock_api = MockDaznoApi::start().await;
         let client = MCPClient::new(mock_api.base_url, None);
-        
+
         let node_pubkey = "02a1b2c3d4e5f6789abcdef123456789abcdef123456789abcdef123456789abcdef";
-        let analysis = client.get_performance_analysis(node_pubkey, 30).await.unwrap();
-        
-        assert_eq!(analysis["performance_metrics"]["current_roi_percentage"], 15.8);
-        assert_eq!(analysis["competitive_analysis"]["vs_amboss_advantage"], 15.3);
+        let analysis = client
+            .get_performance_analysis(node_pubkey, 30)
+            .await
+            .unwrap();
+
+        assert_eq!(
+            analysis["performance_metrics"]["current_roi_percentage"],
+            15.8
+        );
+        assert_eq!(
+            analysis["competitive_analysis"]["vs_amboss_advantage"],
+            15.3
+        );
         assert!(analysis["insights"].is_array());
     }
-    
+
     #[tokio::test]
     async fn test_mock_api_metrics_submission() {
         let mock_api = MockDaznoApi::start().await;
         let client = MCPClient::new(mock_api.base_url, None);
-        
+
         let metrics = NodeMetrics {
             pubkey: "02test".to_string(),
             alias: "Test Node".to_string(),
-            channels: vec![
-                ChannelMetrics {
-                    channel_id: "123".to_string(),
-                    peer_pubkey: "03test".to_string(),
-                    capacity: 1000000,
-                    local_balance: 500000,
-                    remote_balance: 500000,
-                    fees_earned: 1000,
-                    forwards_count: 100,
-                    uptime_percentage: 99.0,
-                }
-            ],
+            channels: vec![ChannelMetrics {
+                channel_id: "123".to_string(),
+                peer_pubkey: "03test".to_string(),
+                capacity: 1000000,
+                local_balance: 500000,
+                remote_balance: 500000,
+                fees_earned: 1000,
+                forwards_count: 100,
+                uptime_percentage: 99.0,
+            }],
             wallet_balance: 2000000,
             channel_balance: 500000,
             total_capacity: 1000000,
             routing_fees_earned: 1000,
             timestamp: Utc::now(),
         };
-        
+
         let result = client.submit_node_metrics(metrics).await;
         assert!(result.is_ok());
     }

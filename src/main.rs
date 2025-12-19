@@ -8,24 +8,31 @@ use axum::{
 use handlebars::Handlebars;
 use serde_json::json;
 use std::sync::Arc;
-use tracing::{info, warn, error};
+use tracing::{error, info, warn};
 
 mod api;
-mod models;
-mod handlers;
-mod utils;
-mod middleware;
 mod auth;
+mod handlers;
+mod middleware;
+mod models;
 mod routes;
+mod utils;
 
-use api::mcp_client::MCPClient;
 use api::local_lightning_client::LocalLightningClient;
-use handlers::websocket::{WebSocketState, websocket_handler, start_real_time_updates};
+use api::mcp_client::MCPClient;
+use auth::{
+    session::{create_sqlite_session_layer, development_session_config},
+    AuthService,
+};
 use handlers::advanced_api::*;
-use middleware::{auth_middleware, public_route_middleware, rate_limit_middleware, RateLimitState, create_action_rate_limiter};
-use auth::{AuthService, session::{create_sqlite_session_layer, development_session_config}};
+use handlers::websocket::{start_real_time_updates, websocket_handler, WebSocketState};
+use middleware::{
+    auth_middleware, create_action_rate_limiter, public_route_middleware, rate_limit_middleware,
+    RateLimitState,
+};
 use routes::auth as auth_routes;
 use sqlx::SqlitePool;
+use utils::ml_engine::MLEngine;
 
 struct AppState {
     mcp_client: MCPClient,
@@ -34,6 +41,7 @@ struct AppState {
     ws_state: Arc<WebSocketState>,
     rate_limiter: RateLimitState,
     auth_service: AuthService,
+    ml_engine: MLEngine,
 }
 
 #[tokio::main]
@@ -45,20 +53,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     info!("Starting Dazno Umbrel App");
 
     // Initialiser la base de données
-    let database_url = std::env::var("DATABASE_URL")
-        .unwrap_or_else(|_| "sqlite:./data/dazno.db".to_string());
-    
+    let database_url =
+        std::env::var("DATABASE_URL").unwrap_or_else(|_| "sqlite:./data/dazno.db".to_string());
+
     info!("Connecting to database: {}", database_url);
     let db_pool = SqlitePool::connect(&database_url).await?;
-    
+
     // Initialiser le service d'authentification
     let auth_service = AuthService::new(db_pool.clone());
     auth_service.create_tables().await?;
-    
+
     // Initialiser l'utilisateur par défaut et récupérer le mot de passe
     let default_password = auth_service.initialize_default_user().await?;
     if default_password != "Utilisateur existant" {
-        info!("🔑 Utilisateur admin créé avec mot de passe: {}", default_password);
+        info!(
+            "🔑 Utilisateur admin créé avec mot de passe: {}",
+            default_password
+        );
     }
 
     let mut handlebars = Handlebars::new();
@@ -69,30 +80,32 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     handlebars.register_template_file("login", "templates/login.html")?;
     handlebars.register_template_file("change-password", "templates/change-password.html")?;
 
-    let mcp_api_url = std::env::var("MCP_API_URL")
-        .unwrap_or_else(|_| "https://api.dazno.de".to_string());
+    let mcp_api_url =
+        std::env::var("MCP_API_URL").unwrap_or_else(|_| "https://api.dazno.de".to_string());
     let mcp_client = MCPClient::new(mcp_api_url, None);
-    
+
     info!("Initializing Local Lightning Client for Umbrel integration");
     let lightning_client = match LocalLightningClient::new().await {
         Ok(client) => {
             info!("✅ Local Lightning Client initialized successfully");
             Arc::new(tokio::sync::Mutex::new(client))
-        },
+        }
         Err(e) => {
             warn!("⚠️ Failed to initialize Lightning Client: {}", e);
             info!("Continuing with mock mode - will retry connection attempts");
             Arc::new(tokio::sync::Mutex::new(
-                LocalLightningClient::new().await.unwrap_or_else(|_| 
-                    panic!("Failed to create even mock Lightning client")
-                )
+                LocalLightningClient::new()
+                    .await
+                    .unwrap_or_else(|_| panic!("Failed to create even mock Lightning client")),
             ))
         }
     };
-    
+
     let ws_state = Arc::new(WebSocketState::new());
 
     let rate_limiter = create_action_rate_limiter();
+
+    let ml_engine = MLEngine::new();
 
     let app_state = AppState {
         mcp_client,
@@ -101,6 +114,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         ws_state: ws_state.clone(),
         rate_limiter,
         auth_service,
+        ml_engine,
     };
 
     // Start real-time updates background task
@@ -125,41 +139,48 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let protected_routes = Router::new()
         // Main pages
         .route("/", get(dashboard_handler))
-        
         // Auth routes pour utilisateurs connectés
         .route("/change-password", get(auth_routes::change_password_page))
         .route("/change-password", post(auth_routes::change_password_post))
         .route("/api/auth/status", get(auth_routes::auth_status))
         .route("/superior", get(superior_dashboard_handler))
-        
         // Basic API
         .route("/api/recommendations", get(get_recommendations_handler))
         .route("/api/actions", post(execute_action_handler))
-        
         // Advanced API endpoints - CRITIQUE: Actions financières
-        .route("/api/recommendations/auto-execute", post(auto_execute_recommendation))
-        .route("/api/recommendations/simulate", post(simulate_recommendation))
-        .route("/api/recommendations/schedule", post(schedule_recommendation))
-        .route("/api/recommendations/:id/optimal-time", get(get_optimal_time))
-        
+        .route(
+            "/api/recommendations/auto-execute",
+            post(auto_execute_recommendation),
+        )
+        .route(
+            "/api/recommendations/simulate",
+            post(simulate_recommendation),
+        )
+        .route(
+            "/api/recommendations/schedule",
+            post(schedule_recommendation),
+        )
+        .route(
+            "/api/recommendations/:id/optimal-time",
+            get(get_optimal_time),
+        )
         // Automation endpoints - CRITIQUE: Configuration d'automatisation
         .route("/api/automation/mode", post(update_automation_mode))
         .route("/api/automation/max-actions", post(update_max_actions))
-        .route("/api/automation/auto-execution", post(toggle_auto_execution))
+        .route(
+            "/api/automation/auto-execution",
+            post(toggle_auto_execution),
+        )
         .route("/api/automation/settings", get(get_automation_settings))
-        
         // Analytics endpoints
         .route("/api/analysis/force-deep", post(force_deep_analysis))
         .route("/api/analytics/node", get(get_node_analytics))
         .route("/api/competitive-analysis", get(get_competitive_analysis))
-        
         // WebSocket endpoint
         .route("/ws/realtime", get(websocket_handler))
-        
         // Real Lightning node data - CRITIQUE: Données sensibles
         .route("/api/node/info", get(get_node_info_handler))
         .route("/api/node/channels", get(get_channels_handler))
-        
         // Middleware d'authentification pour toutes les routes protégées
         .route_layer(axum::middleware::from_fn(auth_middleware))
         // Rate limiting plus strict pour les actions critiques
@@ -173,9 +194,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?;
     info!("Server running on http://0.0.0.0:3000");
-    
+
     axum::serve(listener, app).await?;
-    
+
     Ok(())
 }
 
@@ -216,7 +237,7 @@ async fn superior_dashboard_handler() -> impl IntoResponse {
                 "execution_time": "2-5 minutes"
             },
             {
-                "id": "rec_002", 
+                "id": "rec_002",
                 "action_type_display": "Rebalance Liquidity",
                 "priority": "Medium",
                 "priority_class": "medium",
@@ -372,7 +393,7 @@ async fn execute_action_handler() -> impl IntoResponse {
 
 async fn get_node_info_handler() -> Result<Json<serde_json::Value>, StatusCode> {
     info!("📡 Node info requested - will integrate with LND client");
-    
+
     // SÉCURISÉ: Pas de hardcoded credentials, données génériques pour le mock
     Ok(Json(json!({
         "pubkey": format!("{}...{}", "02", "def"), // Pubkey tronquée pour la sécurité
@@ -391,7 +412,7 @@ async fn get_node_info_handler() -> Result<Json<serde_json::Value>, StatusCode> 
 
 async fn get_channels_handler() -> Result<Json<serde_json::Value>, StatusCode> {
     info!("⚡ Channels requested - will integrate with LND client");
-    
+
     // SÉCURISÉ: Données génériques sans informations sensibles
     Ok(Json(json!([
         {

@@ -1,8 +1,8 @@
-use tower_sessions::{MemoryStore, SessionManagerLayer};
-use tower_sessions_sqlx_store::SqliteStore;
+use anyhow::Result;
 use sqlx::SqlitePool;
 use std::time::Duration;
-use anyhow::Result;
+use tower_sessions::{MemoryStore, SessionManagerLayer};
+use tower_sessions_sqlx_store::SqliteStore;
 
 /// Configuration des sessions pour l'authentification
 pub struct SessionConfig {
@@ -29,7 +29,7 @@ pub async fn create_sqlite_session_layer(
 ) -> Result<SessionManagerLayer<SqliteStore>> {
     let store = SqliteStore::new(db_pool);
     store.migrate().await?;
-    
+
     Ok(SessionManagerLayer::new(store)
         .with_secure(config.secure)
         .with_http_only(config.http_only)
@@ -41,7 +41,7 @@ pub fn development_session_config() -> SessionConfig {
     SessionConfig {
         secret_key: "your-secret-key-change-in-production".to_string(),
         max_age: Duration::from_secs(24 * 60 * 60), // 24 heures
-        secure: false, // HTTP autorisé en développement
+        secure: false,                              // HTTP autorisé en développement
         http_only: true,
         same_site: tower_sessions::cookie::SameSite::Lax,
     }
@@ -53,7 +53,7 @@ pub fn production_session_config() -> SessionConfig {
         secret_key: std::env::var("SESSION_SECRET_KEY")
             .unwrap_or_else(|_| "change-this-in-production".to_string()),
         max_age: Duration::from_secs(2 * 60 * 60), // 2 heures
-        secure: true, // HTTPS uniquement en production
+        secure: true,                              // HTTPS uniquement en production
         http_only: true,
         same_site: tower_sessions::cookie::SameSite::Strict,
     }
