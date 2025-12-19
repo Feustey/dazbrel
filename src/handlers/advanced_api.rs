@@ -5,6 +5,7 @@ use axum::{
     Json as RequestJson,
 };
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 use tracing::{error, info};
 use uuid::Uuid;
 
@@ -114,8 +115,9 @@ pub async fn auto_execute_recommendation(
         payload.recommendation_id
     );
 
-    // Phase 3 preview: analyse basée sur les données locales (mock si LND indisponible)
-    let channels = Vec::new();
+    let mut lightning = app_state.lightning_client.lock().await;
+    let channels = lightning.list_local_channels().await.unwrap_or_default();
+    drop(lightning);
 
     let recommendations = app_state.ml_engine.build_recommendations(&channels);
     let selected = recommendations
@@ -189,7 +191,7 @@ pub async fn auto_execute_recommendation(
 
 // Simulate recommendation endpoint
 pub async fn simulate_recommendation(
-    State(app_state): State<crate::AppState>,
+    State(app_state): State<Arc<crate::AppState>>,
     RequestJson(payload): RequestJson<SimulationRequest>,
 ) -> Result<Json<SimulationResponse>, StatusCode> {
     // SÉCURITÉ: Validation d'entrée
@@ -200,7 +202,9 @@ pub async fn simulate_recommendation(
 
     info!("Simulating recommendation: {}", payload.recommendation_id);
 
-    let channels = Vec::new();
+    let mut lightning = app_state.lightning_client.lock().await;
+    let channels = lightning.list_local_channels().await.unwrap_or_default();
+    drop(lightning);
 
     let recommendations = app_state.ml_engine.build_recommendations(&channels);
     let selected = recommendations
@@ -238,7 +242,7 @@ pub async fn schedule_recommendation(
 
 // Get optimal execution time
 pub async fn get_optimal_time(
-    State(app_state): State<crate::AppState>,
+    State(app_state): State<Arc<crate::AppState>>,
     Path(recommendation_id): Path<String>,
 ) -> Result<Json<OptimalTimeResponse>, StatusCode> {
     // SÉCURITÉ: Validation du paramètre de chemin
@@ -252,7 +256,11 @@ pub async fn get_optimal_time(
         recommendation_id
     );
 
-    let recommendations = app_state.ml_engine.build_recommendations(&[]);
+    let mut lightning = app_state.lightning_client.lock().await;
+    let channels = lightning.list_local_channels().await.unwrap_or_default();
+    drop(lightning);
+
+    let recommendations = app_state.ml_engine.build_recommendations(&channels);
     let selected = recommendations
         .into_iter()
         .find(|r| r.id == recommendation_id)
@@ -306,7 +314,9 @@ pub async fn force_deep_analysis(
     // Simulate deep analysis time
     tokio::time::sleep(tokio::time::Duration::from_millis(1200)).await;
 
-    let channels = Vec::new();
+    let mut lightning = app_state.lightning_client.lock().await;
+    let channels = lightning.list_local_channels().await.unwrap_or_default();
+    drop(lightning);
 
     let scorecard = app_state.ml_engine.score_channels(&channels);
     let insights = app_state.ml_engine.derive_insights(&channels);
@@ -343,11 +353,13 @@ pub async fn force_deep_analysis(
 
 // Get automation settings
 pub async fn get_automation_settings(
-    State(app_state): State<crate::AppState>,
+    State(app_state): State<Arc<crate::AppState>>,
 ) -> Result<Json<AutomationSettingsResponse>, StatusCode> {
     let settings = AutomationSettings::default();
 
-    let channels = Vec::new();
+    let mut lightning = app_state.lightning_client.lock().await;
+    let channels = lightning.list_local_channels().await.unwrap_or_default();
+    drop(lightning);
 
     let readiness = app_state
         .ml_engine
@@ -361,9 +373,11 @@ pub async fn get_automation_settings(
 
 // Get node analytics
 pub async fn get_node_analytics(
-    State(app_state): State<crate::AppState>,
+    State(app_state): State<Arc<crate::AppState>>,
 ) -> Result<Json<NodeAnalytics>, StatusCode> {
-    let channels = Vec::new();
+    let mut lightning = app_state.lightning_client.lock().await;
+    let channels = lightning.list_local_channels().await.unwrap_or_default();
+    drop(lightning);
 
     let scorecard = app_state.ml_engine.score_channels(&channels);
 

@@ -1,3 +1,4 @@
+use crate::api::mcp_client::MCPRecommendation;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

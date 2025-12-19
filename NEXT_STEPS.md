@@ -21,12 +21,12 @@
   - Documentation complète (DEPLOYMENT.md)
   - Fichiers de configuration (.env.example)
 
-## ✅ Phase 3 - Socle finalisé (mock local)
+## 🟢 Phase 3 - Travaux engagés
 
-- [x] **Moteur ML local** pour scorer les canaux, générer des recommandations prioritaires et projeter le ROI (30/90/365j)
-- [x] **Endpoints avancés unifiés** (simulation, auto-exec, deep analysis, fenêtre optimale) branchés sur le moteur ML
-- [x] **Préparation à l'automatisation** : calcul de readiness, seuils ML et stats exposés par API
-- [x] **Mode mock sécurisé** par défaut (données locales synthétiques) en attendant le branchement LND temps réel
+- [x] **Moteur ML local initial** pour scorer les canaux, générer des recommandations prioritaires et projeter le ROI (30/90/365j)
+- [x] **Lecture temps-réel des canaux (mock ou LND)** pour alimenter l'analyse profonde et les WebSockets
+- [x] **Préparation à l'automatisation** : calcul de readiness, facteurs bloquants et seuils de confiance ML
+- [x] **End-points avancés révisés** (simulation, auto-exec, deep analysis, fenêtre optimale) branchés sur le moteur ML
 
 ## 🚀 Comment tester maintenant
 

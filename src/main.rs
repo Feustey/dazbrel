@@ -7,7 +7,7 @@ use axum::{
 use handlebars::Handlebars;
 use serde_json::json;
 use std::sync::Arc;
-use tracing::{info, warn};
+use tracing::{error, info, warn};
 
 mod api;
 mod auth;
@@ -42,14 +42,6 @@ struct AppState {
     rate_limiter: RateLimitState,
     auth_service: AuthService,
     ml_engine: MLEngine,
-}
-
-// Vérification de sécurité : l'état doit être Send + Sync pour Axum.
-#[allow(dead_code)]
-fn _assert_state_bounds()
-where
-    AppState: Clone + Send + Sync + 'static,
-{
 }
 
 #[tokio::main]
