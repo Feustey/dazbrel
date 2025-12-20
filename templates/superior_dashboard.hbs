@@ -83,6 +83,36 @@
                 </div>
             </section>
 
+            <section class="node-network-panel">
+                <h2>🛰️ Node & Network Intelligence</h2>
+                <div class="node-grid">
+                    <div class="node-item">
+                        <span class="node-label">Alias</span>
+                        <span class="node-value">{{node.alias}}</span>
+                    </div>
+                    <div class="node-item">
+                        <span class="node-label">Pubkey</span>
+                        <span class="node-value">{{node.pubkey}}</span>
+                    </div>
+                    <div class="node-item">
+                        <span class="node-label">Block Height</span>
+                        <span class="node-value">{{node.block_height}}</span>
+                    </div>
+                    <div class="node-item">
+                        <span class="node-label">Local / Remote</span>
+                        <span class="node-value">{{node.local_balance}} / {{node.remote_balance}} sats</span>
+                    </div>
+                    <div class="node-item">
+                        <span class="node-label">Routing Success</span>
+                        <span class="node-value">{{network.routing_success}}%</span>
+                    </div>
+                    <div class="node-item">
+                        <span class="node-label">Network Capacity</span>
+                        <span class="node-value">{{network.capacity}} sats</span>
+                    </div>
+                </div>
+            </section>
+
             <!-- Panneau de recommandations AI supérieur -->
             <section class="ai-recommendations-superior">
                 <div class="section-header-pro">

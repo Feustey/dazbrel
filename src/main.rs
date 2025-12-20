@@ -1,4 +1,5 @@
 use axum::{
+    extract::State,
     http::StatusCode,
     response::{Html, IntoResponse},
     routing::{get, post},
@@ -77,6 +78,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     handlebars.register_template_file("recommendations", "templates/recommendations.hbs")?;
     handlebars.register_template_file("history", "templates/history.hbs")?;
     handlebars.register_template_file("settings", "templates/settings.hbs")?;
+    handlebars.register_template_file("superior_dashboard", "templates/superior_dashboard.hbs")?;
     handlebars.register_template_file("login", "templates/login.html")?;
     handlebars.register_template_file("change-password", "templates/change-password.html")?;
     let handlebars = Arc::new(handlebars);
@@ -145,9 +147,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/change-password", post(auth_routes::change_password_post))
         .route("/api/auth/status", get(auth_routes::auth_status))
         .route("/superior", get(superior_dashboard_handler))
+        .route("/recommendations", get(recommendations_page_handler))
+        .route("/history", get(history_page_handler))
+        .route("/settings", get(settings_page_handler))
         // Basic API
         .route("/api/recommendations", get(get_recommendations_handler))
         .route("/api/actions", post(execute_action_handler))
+        .route("/api/metrics", get(get_metrics_handler))
+        .route("/api/status", get(get_status_handler))
         // Advanced API endpoints - CRITIQUE: Actions financières
         .route(
             "/api/recommendations/auto-execute",
@@ -201,13 +208,99 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-async fn dashboard_handler() -> impl IntoResponse {
-    Html("<h1>Dazno Dashboard - Coming Soon!</h1><p><a href='/superior'>Try Superior Dashboard</a></p>")
+fn mock_node_context() -> serde_json::Value {
+    json!({
+        "alias": "Lightning Node",
+        "pubkey": "02...def",
+        "version": "0.17.4-beta",
+        "block_height": 835000,
+        "sync_status": "Synced / Graph OK",
+        "local_balance": 2500000,
+        "remote_balance": 3200000
+    })
 }
 
-async fn superior_dashboard_handler() -> impl IntoResponse {
-    // Mock data for the superior dashboard
-    let _mock_data = json!({
+fn mock_network_context() -> serde_json::Value {
+    json!({
+        "routing_success": 94.2,
+        "avg_fee_rate": 850,
+        "capacity": 4500000000i64,
+        "active_peers": 42,
+        "top_peers": [
+            { "alias": "Kilo Node", "capacity": 1200000, "balance_ratio": 62 },
+            { "alias": "SatWave", "capacity": 980000, "balance_ratio": 55 },
+            { "alias": "NovaRoute", "capacity": 760000, "balance_ratio": 47 }
+        ]
+    })
+}
+
+fn mock_recommendations_context() -> serde_json::Value {
+    json!([
+        {
+            "id": "rec_001",
+            "action_type_display": "Optimize Channel Fees",
+            "action_type": "AdjustFees",
+            "priority": "High",
+            "priority_class": "high",
+            "expected_roi_impact": 3.2,
+            "description": "Adjust fees on 3 channels to capture more routing opportunities",
+            "confidence": 92.5,
+            "risk_level": "low",
+            "execution_time": "2-5 minutes",
+            "created_at": "Today 09:12"
+        },
+        {
+            "id": "rec_002",
+            "action_type_display": "Rebalance Liquidity",
+            "action_type": "RebalanceChannel",
+            "priority": "Medium",
+            "priority_class": "medium",
+            "expected_roi_impact": 1.8,
+            "description": "Move 500k sats to improve channel balance distribution",
+            "confidence": 87.3,
+            "risk_level": "medium",
+            "execution_time": "10-15 minutes",
+            "created_at": "Today 08:41"
+        }
+    ])
+}
+
+fn mock_metrics_context() -> serde_json::Value {
+    json!({
+        "total_channels": 8,
+        "active_channels": 7,
+        "total_capacity": 5700000,
+        "fees_earned_24h": 4200
+    })
+}
+
+async fn dashboard_handler(
+    State(app_state): State<AppState>,
+) -> Result<Html<String>, StatusCode> {
+    let context = json!({
+        "connection_status": "connected",
+        "current_roi": 15.8,
+        "metrics": mock_metrics_context(),
+        "node": mock_node_context(),
+        "network": mock_network_context(),
+        "recommendations": mock_recommendations_context()
+    });
+
+    let html = app_state
+        .handlebars
+        .render("dashboard", &context)
+        .map_err(|e| {
+            error!("Erreur de rendu du template dashboard: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    Ok(Html(html))
+}
+
+async fn superior_dashboard_handler(
+    State(app_state): State<AppState>,
+) -> Result<Html<String>, StatusCode> {
+    let context = json!({
         "performance_advantage": 15.3,
         "current_roi": 15.8,
         "predicted_roi": 18.2,
@@ -262,126 +355,130 @@ async fn superior_dashboard_handler() -> impl IntoResponse {
         "ml_accuracy": 94.7,
         "amboss_accuracy": 87.2,
         "response_time": 145,
-        "amboss_response_time": 420
+        "amboss_response_time": 420,
+        "node": mock_node_context(),
+        "network": mock_network_context()
     });
 
-    let html_content = r#"
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Dazno Pro - Superior Lightning ROI Optimizer</title>
-        <link rel="stylesheet" href="/static/css/dazno-superior-theme.css">
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
-    </head>
-    <body>
-        <div style="background: #0F172A; color: #F8FAFC; min-height: 100vh; font-family: 'Inter', sans-serif; padding: 2rem;">
-            <header style="text-align: center; margin-bottom: 3rem;">
-                <h1 style="font-size: 3rem; margin-bottom: 1rem;">⚡ Dazno Pro</h1>
-                <p style="font-size: 1.2rem; color: #06D6A0;">Superior Lightning ROI Optimizer - Better than Amboss</p>
-                <div style="margin-top: 1rem;">
-                    <span style="background: linear-gradient(135deg, #06D6A0 0%, #3B82F6 100%); padding: 0.5rem 1rem; border-radius: 20px; font-weight: 600;">
-                        vs Amboss: +15.3% Performance Advantage
-                    </span>
-                </div>
-            </header>
-            
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; max-width: 1200px; margin: 0 auto;">
-                <div style="background: #1E293B; padding: 2rem; border-radius: 16px; border: 1px solid #334155;">
-                    <h2 style="margin-bottom: 1rem; color: #06D6A0;">🎯 Performance Metrics</h2>
-                    <div style="margin-bottom: 1rem;">
-                        <span style="color: #94A3B8;">Current ROI:</span>
-                        <strong style="color: #06D6A0; font-size: 1.5rem; margin-left: 1rem;">15.8%</strong>
-                    </div>
-                    <div style="margin-bottom: 1rem;">
-                        <span style="color: #94A3B8;">Predicted 30d:</span>
-                        <strong style="color: #3B82F6; margin-left: 1rem;">18.2%</strong>
-                    </div>
-                    <div>
-                        <span style="color: #94A3B8;">Success Rate:</span>
-                        <strong style="color: #06D6A0; margin-left: 1rem;">94.2%</strong>
-                    </div>
-                </div>
-                
-                <div style="background: #1E293B; padding: 2rem; border-radius: 16px; border: 1px solid #334155;">
-                    <h2 style="margin-bottom: 1rem; color: #7C3AED;">🧠 AI Recommendations</h2>
-                    <div style="background: #0F172A; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border-left: 4px solid #EF4444;">
-                        <h3 style="font-size: 1rem; margin-bottom: 0.5rem;">Optimize Channel Fees</h3>
-                        <p style="color: #94A3B8; font-size: 0.9rem; margin-bottom: 0.5rem;">Adjust fees on 3 channels</p>
-                        <span style="color: #06D6A0; font-weight: 600;">+3.2% ROI Impact</span>
-                        <div style="margin-top: 1rem;">
-                            <button style="background: #06D6A0; color: #0F172A; border: none; padding: 0.5rem 1rem; border-radius: 6px; margin-right: 0.5rem; cursor: pointer;">⚡ Auto Execute</button>
-                            <button style="background: #2D5BFF; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer;">🎯 Simulate</button>
-                        </div>
-                    </div>
-                </div>
-                
-                <div style="background: #1E293B; padding: 2rem; border-radius: 16px; border: 1px solid #334155;">
-                    <h2 style="margin-bottom: 1rem; color: #F59E0B;">🤖 Automation Status</h2>
-                    <div style="margin-bottom: 1rem;">
-                        <span style="color: #94A3B8;">Actions Today:</span>
-                        <strong style="color: #F8FAFC; margin-left: 1rem;">7</strong>
-                    </div>
-                    <div style="margin-bottom: 1rem;">
-                        <span style="color: #94A3B8;">Success Rate:</span>
-                        <strong style="color: #06D6A0; margin-left: 1rem;">92.5%</strong>
-                    </div>
-                    <div style="margin-bottom: 1rem;">
-                        <span style="color: #94A3B8;">ROI Gained:</span>
-                        <strong style="color: #06D6A0; margin-left: 1rem;">+18.3%</strong>
-                    </div>
-                    <div style="margin-top: 1rem;">
-                        <button style="background: linear-gradient(135deg, #F59E0B 0%, #EAB308 100%); color: #0F172A; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600; cursor: pointer;">
-                            🤖 Auto Mode: ON
-                        </button>
-                    </div>
-                </div>
-                
-                <div style="background: #1E293B; padding: 2rem; border-radius: 16px; border: 1px solid #334155;">
-                    <h2 style="margin-bottom: 1rem; color: #3B82F6;">🏆 vs Amboss Magma</h2>
-                    <div style="margin-bottom: 1rem;">
-                        <span style="color: #94A3B8;">ML Accuracy:</span>
-                        <strong style="color: #06D6A0; margin-left: 1rem;">94.7%</strong>
-                        <span style="color: #64748B; margin-left: 0.5rem;">vs 87.2%</span>
-                    </div>
-                    <div style="margin-bottom: 1rem;">
-                        <span style="color: #94A3B8;">Response Time:</span>
-                        <strong style="color: #06D6A0; margin-left: 1rem;">145ms</strong>
-                        <span style="color: #64748B; margin-left: 0.5rem;">vs 420ms</span>
-                    </div>
-                    <div>
-                        <span style="color: #94A3B8;">Performance:</span>
-                        <strong style="color: #06D6A0; margin-left: 1rem;">+15.3% better</strong>
-                    </div>
-                </div>
-            </div>
-            
-            <div style="text-align: center; margin-top: 3rem; padding: 2rem; background: #1E293B; border-radius: 16px; max-width: 800px; margin-left: auto; margin-right: auto;">
-                <h2 style="margin-bottom: 1rem; color: #06D6A0;">🚀 Real-Time Features</h2>
-                <p style="color: #94A3B8; margin-bottom: 2rem;">WebSocket connections, ML predictions, automated execution, competitive analysis - all in real-time!</p>
-                <div style="display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap;">
-                    <span style="background: rgba(6, 214, 160, 0.2); color: #06D6A0; padding: 0.5rem 1rem; border-radius: 20px;">✅ Real-time Updates</span>
-                    <span style="background: rgba(59, 130, 246, 0.2); color: #3B82F6; padding: 0.5rem 1rem; border-radius: 20px;">✅ AI Predictions</span>
-                    <span style="background: rgba(124, 58, 237, 0.2); color: #7C3AED; padding: 0.5rem 1rem; border-radius: 20px;">✅ Auto-Execution</span>
-                    <span style="background: rgba(245, 158, 11, 0.2); color: #F59E0B; padding: 0.5rem 1rem; border-radius: 20px;">✅ Competitive Edge</span>
-                </div>
-            </div>
-        </div>
-        
-        <script>
-            console.log('🚀 Dazno Pro Superior Dashboard Loaded');
-            console.log('Features: Real-time WebSocket, Advanced AI, Better than Amboss');
-            
-            // Simulate real-time updates
-            setInterval(() => {
-                console.log('📊 Real-time update received');
-            }, 5000);
-        </script>
-    </body>
-    </html>
-    "#;
+    let html = app_state
+        .handlebars
+        .render("superior_dashboard", &context)
+        .map_err(|e| {
+            error!("Erreur de rendu du template superior_dashboard: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
 
-    Html(html_content)
+    Ok(Html(html))
+}
+
+async fn recommendations_page_handler(
+    State(app_state): State<AppState>,
+) -> Result<Html<String>, StatusCode> {
+    let context = json!({
+        "connection_status": "connected",
+        "node": mock_node_context(),
+        "network": mock_network_context(),
+        "recommendations": mock_recommendations_context()
+    });
+
+    let html = app_state
+        .handlebars
+        .render("recommendations", &context)
+        .map_err(|e| {
+            error!("Erreur de rendu du template recommendations: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    Ok(Html(html))
+}
+
+async fn history_page_handler(
+    State(app_state): State<AppState>,
+) -> Result<Html<String>, StatusCode> {
+    let context = json!({
+        "connection_status": "connected",
+        "node": mock_node_context(),
+        "network": mock_network_context(),
+        "metrics": mock_metrics_context(),
+        "total_actions": 18,
+        "successful_actions": 15,
+        "failed_actions": 3,
+        "total_roi_impact": 21.4,
+        "recent_actions": [
+            {
+                "action_type": "Adjust Fees",
+                "executed_at": "Today 08:35",
+                "success": true,
+                "impact": 2.4
+            },
+            {
+                "action_type": "Rebalance Channel",
+                "executed_at": "Yesterday 19:22",
+                "success": false,
+                "impact": 0.0
+            }
+        ]
+    });
+
+    let html = app_state
+        .handlebars
+        .render("history", &context)
+        .map_err(|e| {
+            error!("Erreur de rendu du template history: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    Ok(Html(html))
+}
+
+async fn settings_page_handler(
+    State(app_state): State<AppState>,
+) -> Result<Html<String>, StatusCode> {
+    let context = json!({
+        "connection_status": "connected",
+        "mcp_api_url": "https://api.dazno.de",
+        "polling_interval": 60,
+        "max_channel_size": 5000000,
+        "auto_approve_enabled": true,
+        "confirmation_required": true,
+        "email_notifications": false,
+        "notification_email": "",
+        "alert_threshold": 5.0,
+        "lnd_status": "connected",
+        "lnd_status_text": "Connected",
+        "mcp_status": "connected",
+        "mcp_status_text": "Connected",
+        "last_sync": "Today 09:05",
+        "node": mock_node_context(),
+        "network": mock_network_context()
+    });
+
+    let html = app_state
+        .handlebars
+        .render("settings", &context)
+        .map_err(|e| {
+            error!("Erreur de rendu du template settings: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    Ok(Html(html))
+}
+
+async fn get_metrics_handler() -> impl IntoResponse {
+    Json(json!({
+        "current_roi": 15.8,
+        "total_channels": 8,
+        "active_channels": 7,
+        "total_capacity": 5700000,
+        "fees_earned_24h": 4200
+    }))
+}
+
+async fn get_status_handler() -> impl IntoResponse {
+    Json(json!({
+        "mcp_connected": true,
+        "lnd_connected": true
+    }))
 }
 
 async fn get_recommendations_handler() -> impl IntoResponse {

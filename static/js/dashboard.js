@@ -33,11 +33,12 @@ function updateMetrics() {
 
 function updateMetricCards(data) {
     // Update metric values in the UI
-    const metricElements = document.querySelectorAll('.metric-value');
+    const metricElements = document.querySelectorAll('.metric-value[data-metric]');
     metricElements.forEach(element => {
-        const metricType = element.closest('.metric-card').querySelector('.metric-label').textContent;
-        if (data[metricType]) {
-            element.textContent = data[metricType];
+        const metricType = element.dataset.metric;
+        if (data[metricType] !== undefined) {
+            const suffix = element.textContent.includes('sats') ? ' sats' : element.textContent.includes('%') ? '%' : '';
+            element.textContent = `${data[metricType]}${suffix}`;
         }
     });
 }
@@ -147,13 +148,39 @@ function updateConnectionStatus(mcpConnected, lndConnected) {
 }
 
 function loadDashboardData() {
-    fetch('/api/dashboard')
+    fetch('/api/node/info')
         .then(response => response.json())
         .then(data => {
-            console.log('Dashboard data loaded:', data);
+            const alias = document.getElementById('node-alias');
+            const pubkey = document.getElementById('node-pubkey');
+            const version = document.getElementById('node-version');
+            const blockHeight = document.getElementById('node-block-height');
+            const sync = document.getElementById('node-sync');
+            const balances = document.getElementById('node-balances');
+
+            if (alias) alias.textContent = data.alias;
+            if (pubkey) pubkey.textContent = data.pubkey;
+            if (version) version.textContent = data.version;
+            if (blockHeight) blockHeight.textContent = data.block_height;
+            if (sync) {
+                sync.textContent = `${data.synced_to_chain ? 'Synced' : 'Syncing'} / ${data.synced_to_graph ? 'Graph OK' : 'Graph syncing'}`;
+            }
+            if (balances) balances.textContent = `${data.local_balance} / ${data.remote_balance} sats`;
         })
         .catch(error => {
-            console.error('Error loading dashboard data:', error);
+            console.error('Error loading node info:', error);
+        });
+
+    fetch('/api/node/channels')
+        .then(response => response.json())
+        .then(data => {
+            const peers = document.getElementById('network-peers');
+            if (peers) {
+                peers.textContent = data.length;
+            }
+        })
+        .catch(error => {
+            console.error('Error loading channels:', error);
         });
 }
 

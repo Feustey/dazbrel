@@ -84,6 +84,28 @@
                     </div>
                 </div>
             </section>
+
+            <section class="settings-section">
+                <h2>Node & Network Info</h2>
+                <div class="node-grid">
+                    <div class="node-item">
+                        <span class="node-label">Alias</span>
+                        <span class="node-value">{{node.alias}}</span>
+                    </div>
+                    <div class="node-item">
+                        <span class="node-label">Pubkey</span>
+                        <span class="node-value">{{node.pubkey}}</span>
+                    </div>
+                    <div class="node-item">
+                        <span class="node-label">Version</span>
+                        <span class="node-value">{{node.version}}</span>
+                    </div>
+                    <div class="node-item">
+                        <span class="node-label">Routing Success</span>
+                        <span class="node-value">{{network.routing_success}}%</span>
+                    </div>
+                </div>
+            </section>
             
             <div class="settings-actions">
                 <button class="btn-primary" id="save-settings">Save Settings</button>

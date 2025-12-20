@@ -17,26 +17,56 @@
                 <h2>Node Metrics</h2>
                 <div class="metric-card">
                     <span class="metric-label">Current ROI</span>
-                    <span class="metric-value">{{current_roi}}%</span>
+                    <span class="metric-value" data-metric="current_roi">{{current_roi}}%</span>
                 </div>
                 <div class="metric-card">
                     <span class="metric-label">Total Channels</span>
-                    <span class="metric-value">{{metrics.total_channels}}</span>
+                    <span class="metric-value" data-metric="total_channels">{{metrics.total_channels}}</span>
                 </div>
                 <div class="metric-card">
                     <span class="metric-label">Active Channels</span>
-                    <span class="metric-value">{{metrics.active_channels}}</span>
+                    <span class="metric-value" data-metric="active_channels">{{metrics.active_channels}}</span>
                 </div>
                 <div class="metric-card">
                     <span class="metric-label">Total Capacity</span>
-                    <span class="metric-value">{{metrics.total_capacity}} sats</span>
+                    <span class="metric-value" data-metric="total_capacity">{{metrics.total_capacity}} sats</span>
                 </div>
                 <div class="metric-card">
                     <span class="metric-label">Fees Earned (24h)</span>
-                    <span class="metric-value">{{metrics.fees_earned_24h}} sats</span>
+                    <span class="metric-value" data-metric="fees_earned_24h">{{metrics.fees_earned_24h}} sats</span>
                 </div>
             </section>
             
+            <section class="node-panel">
+                <h2>Node Overview</h2>
+                <div class="node-grid">
+                    <div class="node-item">
+                        <span class="node-label">Alias</span>
+                        <span class="node-value" id="node-alias">{{node.alias}}</span>
+                    </div>
+                    <div class="node-item">
+                        <span class="node-label">Pubkey</span>
+                        <span class="node-value" id="node-pubkey">{{node.pubkey}}</span>
+                    </div>
+                    <div class="node-item">
+                        <span class="node-label">Version</span>
+                        <span class="node-value" id="node-version">{{node.version}}</span>
+                    </div>
+                    <div class="node-item">
+                        <span class="node-label">Block Height</span>
+                        <span class="node-value" id="node-block-height">{{node.block_height}}</span>
+                    </div>
+                    <div class="node-item">
+                        <span class="node-label">Sync Status</span>
+                        <span class="node-value" id="node-sync">{{node.sync_status}}</span>
+                    </div>
+                    <div class="node-item">
+                        <span class="node-label">Local / Remote</span>
+                        <span class="node-value" id="node-balances">{{node.local_balance}} / {{node.remote_balance}} sats</span>
+                    </div>
+                </div>
+            </section>
+
             <section class="recommendations-panel">
                 <h2>Active Recommendations</h2>
                 {{#each recommendations}}
@@ -55,6 +85,39 @@
                     <p>No recommendations available at the moment.</p>
                 </div>
                 {{/unless}}
+            </section>
+
+            <section class="network-panel">
+                <h2>Lightning Network Snapshot</h2>
+                <div class="node-grid">
+                    <div class="node-item">
+                        <span class="node-label">Routing Success</span>
+                        <span class="node-value" id="network-success">{{network.routing_success}}%</span>
+                    </div>
+                    <div class="node-item">
+                        <span class="node-label">Avg Fee Rate</span>
+                        <span class="node-value" id="network-fee">{{network.avg_fee_rate}} ppm</span>
+                    </div>
+                    <div class="node-item">
+                        <span class="node-label">Network Capacity</span>
+                        <span class="node-value" id="network-capacity">{{network.capacity}} sats</span>
+                    </div>
+                    <div class="node-item">
+                        <span class="node-label">Active Peers</span>
+                        <span class="node-value" id="network-peers">{{network.active_peers}}</span>
+                    </div>
+                </div>
+                <div class="network-list">
+                    <h3>Top Peers</h3>
+                    <ul>
+                        {{#each network.top_peers}}
+                        <li>
+                            <span class="peer-name">{{alias}}</span>
+                            <span class="peer-detail">{{capacity}} sats · {{balance_ratio}}% local</span>
+                        </li>
+                        {{/each}}
+                    </ul>
+                </div>
             </section>
         </main>
         
