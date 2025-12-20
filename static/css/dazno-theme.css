@@ -111,7 +111,29 @@
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
+.node-panel,
+.network-panel {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.recommendations-main .node-panel,
+.history-main .node-panel,
+.settings-main .node-panel {
+  margin-bottom: 2rem;
+}
+
 .metrics-panel h2, .recommendations-panel h2 {
+  margin-bottom: 1.5rem;
+  color: var(--dazno-dark);
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.node-panel h2,
+.network-panel h2 {
   margin-bottom: 1.5rem;
   color: var(--dazno-dark);
   font-size: 1.25rem;
@@ -217,6 +239,69 @@
   margin-bottom: 1rem;
   font-weight: 600;
   text-align: center;
+}
+
+.node-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+.node-item {
+  background: var(--dazno-light);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--dazno-border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.node-label {
+  font-size: 0.85rem;
+  color: var(--dazno-gray);
+  font-weight: 500;
+}
+
+.node-value {
+  font-weight: 600;
+  color: var(--dazno-dark);
+}
+
+.network-list {
+  margin-top: 1.5rem;
+}
+
+.network-list h3 {
+  font-size: 1rem;
+  color: var(--dazno-dark);
+  margin-bottom: 0.75rem;
+}
+
+.network-list ul {
+  list-style: none;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.network-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: var(--dazno-light);
+  border-radius: 8px;
+  border: 1px solid var(--dazno-border);
+}
+
+.peer-name {
+  font-weight: 600;
+  color: var(--dazno-dark);
+}
+
+.peer-detail {
+  color: var(--dazno-gray);
+  font-size: 0.85rem;
 }
 
 .action-buttons {
