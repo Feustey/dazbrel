@@ -225,6 +225,17 @@ pub async fn simulate_recommendation(
 pub async fn schedule_recommendation(
     RequestJson(payload): RequestJson<ScheduleRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
+    // SÉCURITÉ: Validation d'entrée
+    if let Err(e) = validate_input("recommendation_id", &payload.recommendation_id) {
+        error!("Invalid recommendation_id in scheduling: {:?}", e);
+        return Err(StatusCode::BAD_REQUEST);
+    }
+
+    if let Err(e) = validate_input("scheduled_time", &payload.scheduled_time) {
+        error!("Invalid scheduled_time in scheduling: {:?}", e);
+        return Err(StatusCode::BAD_REQUEST);
+    }
+
     info!(
         "Scheduling recommendation {} for {}",
         payload.recommendation_id, payload.scheduled_time

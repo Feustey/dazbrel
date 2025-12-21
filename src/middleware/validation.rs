@@ -105,6 +105,17 @@ impl Default for InputValidator {
             },
         );
 
+        // Règles pour les dates planifiées (ISO 8601 simplifié)
+        rules.insert(
+            "scheduled_time".to_string(),
+            ValidationRule {
+                min_length: Some(10),
+                max_length: Some(40),
+                pattern: Some(Regex::new(r"^[0-9T:\-+Z\.]+$").unwrap()),
+                ..Default::default()
+            },
+        );
+
         Self { rules }
     }
 }

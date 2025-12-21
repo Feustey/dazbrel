@@ -1,5 +1,5 @@
 use axum::{
-    extract::{ConnectInfo, Request},
+    extract::{ConnectInfo, Request, State},
     http::StatusCode,
     middleware::Next,
     response::Response,
@@ -116,6 +116,23 @@ pub async fn rate_limit_middleware(
     let allowed = RATE_LIMITER.with(|limiter| limiter.check_rate_limit(&client_key));
 
     if !allowed {
+        warn!("Rate limit exceeded for client: {}", client_key);
+        return Err(StatusCode::TOO_MANY_REQUESTS);
+    }
+
+    debug!("Rate limit check passed for client: {}", client_key);
+    Ok(next.run(request).await)
+}
+
+pub async fn rate_limit_middleware_with_state(
+    State(state): State<RateLimitState>,
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
+    request: Request,
+    next: Next,
+) -> Result<Response, StatusCode> {
+    let client_key = addr.ip().to_string();
+
+    if !state.check_rate_limit(&client_key) {
         warn!("Rate limit exceeded for client: {}", client_key);
         return Err(StatusCode::TOO_MANY_REQUESTS);
     }
