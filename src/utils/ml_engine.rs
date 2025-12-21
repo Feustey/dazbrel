@@ -6,8 +6,8 @@ use crate::{
     models::{
         automation::AutomationSettings,
         ml::{
-            AutomationReadiness, ChannelSnapshot, MLInsight, MLScorecard, OptimalWindow,
-            SimulationOutcome, SimulationStep, SmartRecommendation,
+            AutomationReadiness, MLInsight, MLScorecard, OptimalWindow, SimulationOutcome,
+            SimulationStep, SmartRecommendation,
         },
     },
 };
@@ -47,16 +47,18 @@ impl MLEngine {
 
     /// Analyse rapide des canaux pour construire le scorecard ML.
     pub fn score_channels(&self, channels: &[LocalChannelInfo]) -> MLScorecard {
-        let total_capacity: u64 = channels.iter().map(|c| c.capacity).sum();
+        let mut total_capacity: u64 = 0;
+        let mut local_ratio_sum = 0.0;
+        for channel in channels {
+            let capacity = channel.capacity.max(1);
+            total_capacity += capacity;
+            local_ratio_sum += channel.local_balance as f64 / capacity as f64;
+        }
         let capacity = total_capacity.max(1) as f64;
         let avg_local_ratio = if channels.is_empty() {
             0.5
         } else {
-            channels
-                .iter()
-                .map(|c| c.local_balance as f64 / c.capacity.max(1) as f64)
-                .sum::<f64>()
-                / channels.len() as f64
+            local_ratio_sum / channels.len() as f64
         };
 
         let imbalance_penalty = (0.5 - avg_local_ratio).abs() * 22.0;
@@ -82,27 +84,44 @@ impl MLEngine {
 
     /// Insights opérationnels basés sur les snapshots de canaux.
     pub fn derive_insights(&self, channels: &[LocalChannelInfo]) -> Vec<MLInsight> {
-        let snapshots: Vec<ChannelSnapshot> = channels.iter().map(ChannelSnapshot::from).collect();
-
         let mut insights = vec![];
 
-        if let Some(worst) = snapshots
-            .iter()
-            .max_by(|a, b| a.local_ratio.partial_cmp(&b.local_ratio).unwrap())
-        {
+        let mut highest_local_ratio: Option<(&LocalChannelInfo, f64)> = None;
+        let mut highest_forwards: Option<(&LocalChannelInfo, u64)> = None;
+
+        for channel in channels {
+            let capacity = channel.capacity.max(1);
+            let local_ratio = channel.local_balance as f64 / capacity as f64;
+            if highest_local_ratio
+                .map(|(_, ratio)| local_ratio > ratio)
+                .unwrap_or(true)
+            {
+                highest_local_ratio = Some((channel, local_ratio));
+            }
+
+            let forwards = channel.total_satoshis_sent + channel.total_satoshis_received;
+            if highest_forwards
+                .map(|(_, best)| forwards > best)
+                .unwrap_or(true)
+            {
+                highest_forwards = Some((channel, forwards));
+            }
+        }
+
+        if let Some((worst, local_ratio)) = highest_local_ratio {
             insights.push(MLInsight {
                 title: "Rééquilibrage prioritaire".to_string(),
                 detail: format!(
                     "Le canal {} a une part locale élevée ({:.1}%), optimiser la liquidité sortante.",
                     worst.channel_id,
-                    worst.local_ratio * 100.0
+                    local_ratio * 100.0
                 ),
                 impact: 2.4,
                 confidence: 0.9,
             });
         }
 
-        if let Some(best) = snapshots.iter().max_by(|a, b| a.forwards.cmp(&b.forwards)) {
+        if let Some((best, _)) = highest_forwards {
             insights.push(MLInsight {
                 title: "Canal performant".to_string(),
                 detail: format!(

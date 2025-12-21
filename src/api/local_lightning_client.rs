@@ -193,7 +193,7 @@ impl LocalLightningClient {
                 let response = client.lightning().list_channels(request).await?;
                 let channels_response = response.into_inner();
 
-                let mut channels = Vec::new();
+                let mut channels = Vec::with_capacity(channels_response.channels.len());
                 for channel in channels_response.channels {
                     channels.push(LocalChannelInfo {
                         channel_id: channel.chan_id.to_string(),
