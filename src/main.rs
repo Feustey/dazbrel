@@ -21,14 +21,16 @@ mod utils;
 use api::local_lightning_client::LocalLightningClient;
 use api::mcp_client::MCPClient;
 use auth::{
-    session::{create_sqlite_session_layer, development_session_config},
+    session::{
+        create_sqlite_session_layer, development_session_config, production_session_config,
+    },
     AuthService,
 };
 use handlers::advanced_api::*;
 use handlers::websocket::{start_real_time_updates, websocket_handler, WebSocketState};
 use middleware::{
-    auth_middleware, create_action_rate_limiter, public_route_middleware, rate_limit_middleware,
-    RateLimitState,
+    auth_middleware, create_action_rate_limiter, public_route_middleware,
+    rate_limit_middleware_with_state, RateLimitState,
 };
 use routes::auth as auth_routes;
 use sqlx::SqlitePool;
@@ -67,10 +69,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialiser l'utilisateur par défaut et récupérer le mot de passe
     let default_password = auth_service.initialize_default_user().await?;
     if default_password != "Utilisateur existant" {
-        info!(
-            "🔑 Utilisateur admin créé avec mot de passe: {}",
-            default_password
-        );
+        if std::env::var("SHOW_DEFAULT_PASSWORD").is_ok() {
+            info!(
+                "🔑 Utilisateur admin créé avec mot de passe: {}",
+                default_password
+            );
+        } else {
+            warn!("🔑 Utilisateur admin créé. Définissez SHOW_DEFAULT_PASSWORD=true pour afficher le mot de passe temporaire.");
+        }
     }
 
     let mut handlebars = Handlebars::new();
@@ -127,7 +133,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
 
     // Configuration des sessions
-    let session_config = development_session_config();
+    let session_config = match std::env::var("APP_ENV") {
+        Ok(value) if value.eq_ignore_ascii_case("production") => production_session_config(),
+        _ => development_session_config(),
+    };
     let session_layer = create_sqlite_session_layer(db_pool.clone(), session_config).await?;
 
     // Routes publiques (sans authentification)
@@ -192,7 +201,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Middleware d'authentification pour toutes les routes protégées
         .route_layer(axum::middleware::from_fn(auth_middleware))
         // Rate limiting plus strict pour les actions critiques
-        .route_layer(axum::middleware::from_fn(rate_limit_middleware));
+        .route_layer(axum::middleware::from_fn_with_state(
+            rate_limiter.clone(),
+            rate_limit_middleware_with_state,
+        ));
 
     let app = Router::<AppState>::new()
         .merge(public_routes)

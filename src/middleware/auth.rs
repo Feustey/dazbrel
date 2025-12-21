@@ -9,11 +9,43 @@ use hmac::{Hmac, Mac};
 use sha2::Sha256;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tracing::warn;
+use subtle::ConstantTimeEq;
 
 type HmacSha256 = Hmac<Sha256>;
 
-// Clé secrète pour l'authentification (devrait être en variable d'environnement)
-const SECRET_KEY: &[u8] = b"dazno-secret-key-should-be-in-env";
+lazy_static::lazy_static! {
+    static ref SECRET_KEY: Vec<u8> = load_secret_key();
+    static ref TOKEN_TTL_SECONDS: u64 = load_token_ttl_seconds();
+}
+
+fn load_secret_key() -> Vec<u8> {
+    if let Ok(secret_file) = std::env::var("AUTH_SECRET_KEY_FILE") {
+        if let Ok(contents) = std::fs::read_to_string(secret_file) {
+            let trimmed = contents.trim();
+            if !trimmed.is_empty() {
+                return trimmed.as_bytes().to_vec();
+            }
+        }
+    }
+
+    if let Ok(secret) = std::env::var("AUTH_SECRET_KEY") {
+        let trimmed = secret.trim();
+        if !trimmed.is_empty() {
+            return trimmed.as_bytes().to_vec();
+        }
+    }
+
+    warn!("AUTH_SECRET_KEY not configured; using insecure fallback for development only.");
+    b"dazno-secret-key-should-be-in-env".to_vec()
+}
+
+fn load_token_ttl_seconds() -> u64 {
+    std::env::var("AUTH_TOKEN_TTL_SECONDS")
+        .ok()
+        .and_then(|value| value.parse().ok())
+        .filter(|value| *value > 0)
+        .unwrap_or(3600)
+}
 
 #[derive(Debug)]
 pub enum AuthError {
@@ -84,19 +116,25 @@ fn validate_token(token: &str) -> Result<(), AuthError> {
         .unwrap()
         .as_secs();
 
-    // Token expire après 1 heure (3600 secondes)
-    if current_timestamp - timestamp > 3600 {
+    // Token expire après TTL configuré
+    if current_timestamp.saturating_sub(timestamp) > *TOKEN_TTL_SECONDS {
         return Err(AuthError::ExpiredToken);
     }
 
     // Calculer la signature attendue
-    let mut mac = HmacSha256::new_from_slice(SECRET_KEY).map_err(|_| AuthError::InvalidToken)?;
+    let mut mac = HmacSha256::new_from_slice(&SECRET_KEY).map_err(|_| AuthError::InvalidToken)?;
     mac.update(timestamp_str.as_bytes());
 
-    let expected_signature = hex::encode(mac.finalize().into_bytes());
+    let expected_signature = mac.finalize().into_bytes();
+    let provided_signature =
+        hex::decode(provided_signature).map_err(|_| AuthError::InvalidFormat)?;
+
+    if provided_signature.len() != expected_signature.len() {
+        return Err(AuthError::InvalidToken);
+    }
 
     // Comparaison constante pour éviter les attaques par timing
-    if provided_signature == expected_signature {
+    if provided_signature.ct_eq(expected_signature.as_slice()).into() {
         Ok(())
     } else {
         Err(AuthError::InvalidToken)
@@ -110,7 +148,7 @@ pub fn generate_auth_token() -> String {
         .unwrap()
         .as_secs();
 
-    let mut mac = HmacSha256::new_from_slice(SECRET_KEY).unwrap();
+    let mut mac = HmacSha256::new_from_slice(&SECRET_KEY).unwrap();
     mac.update(timestamp.to_string().as_bytes());
     let signature = hex::encode(mac.finalize().into_bytes());
 
