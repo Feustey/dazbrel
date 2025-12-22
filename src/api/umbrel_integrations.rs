@@ -1,7 +1,7 @@
 use anyhow::Result;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use tracing::{error, info, warn};
+use tracing::{info, warn};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LightningTerminalData {
@@ -99,8 +99,11 @@ pub struct UmbrelIntegrations {
     client: Client,
     lightning_terminal_url: String,
     electrs_url: String,
+    #[allow(dead_code)]
     bitcoin_rpc_url: String,
+    #[allow(dead_code)]
     bitcoin_rpc_user: String,
+    #[allow(dead_code)]
     bitcoin_rpc_pass: String,
 }
 
@@ -219,7 +222,7 @@ impl UmbrelIntegrations {
         // Check Lightning Terminal
         match self
             .client
-            .get(&format!("{}/health", self.lightning_terminal_url))
+            .get(format!("{}/health", self.lightning_terminal_url))
             .send()
             .await
         {
@@ -232,7 +235,7 @@ impl UmbrelIntegrations {
         // Check Electrs
         match self
             .client
-            .get(&format!("{}/api/blocks/tip/height", self.electrs_url))
+            .get(format!("{}/api/blocks/tip/height", self.electrs_url))
             .send()
             .await
         {
@@ -262,6 +265,12 @@ impl UmbrelIntegrations {
         };
 
         Ok(data)
+    }
+}
+
+impl Default for UmbrelIntegrations {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

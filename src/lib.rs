@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 // Dazno Umbrel Library
 // Superior Lightning ROI Optimizer for Umbrel
 

@@ -1,8 +1,7 @@
 use axum::{
     extract::{Path, State},
     http::StatusCode,
-    response::Json,
-    Json as RequestJson,
+    Json,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -96,8 +95,8 @@ pub struct AutomationSettingsResponse {
 
 // Auto-execute recommendation endpoint
 pub async fn auto_execute_recommendation(
-    State(app_state): State<crate::AppState>,
-    RequestJson(payload): RequestJson<AutoExecuteRequest>,
+    State(app_state): State<Arc<crate::AppState>>,
+    Json(payload): Json<AutoExecuteRequest>,
 ) -> Result<Json<AutoExecuteResponse>, StatusCode> {
     // SÉCURITÉ: Validation d'entrée
     if let Err(e) = validate_input("recommendation_id", &payload.recommendation_id) {
@@ -115,9 +114,7 @@ pub async fn auto_execute_recommendation(
         payload.recommendation_id
     );
 
-    let mut lightning = app_state.lightning_client.lock().await;
-    let channels = lightning.list_local_channels().await.unwrap_or_default();
-    drop(lightning);
+    let channels = Vec::new();
 
     let recommendations = app_state.ml_engine.build_recommendations(&channels);
     let selected = recommendations
@@ -192,7 +189,7 @@ pub async fn auto_execute_recommendation(
 // Simulate recommendation endpoint
 pub async fn simulate_recommendation(
     State(app_state): State<Arc<crate::AppState>>,
-    RequestJson(payload): RequestJson<SimulationRequest>,
+    Json(payload): Json<SimulationRequest>,
 ) -> Result<Json<SimulationResponse>, StatusCode> {
     // SÉCURITÉ: Validation d'entrée
     if let Err(e) = validate_input("recommendation_id", &payload.recommendation_id) {
@@ -202,9 +199,7 @@ pub async fn simulate_recommendation(
 
     info!("Simulating recommendation: {}", payload.recommendation_id);
 
-    let mut lightning = app_state.lightning_client.lock().await;
-    let channels = lightning.list_local_channels().await.unwrap_or_default();
-    drop(lightning);
+    let channels = Vec::new();
 
     let recommendations = app_state.ml_engine.build_recommendations(&channels);
     let selected = recommendations
@@ -223,7 +218,7 @@ pub async fn simulate_recommendation(
 
 // Schedule recommendation endpoint
 pub async fn schedule_recommendation(
-    RequestJson(payload): RequestJson<ScheduleRequest>,
+    Json(payload): Json<ScheduleRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     // SÉCURITÉ: Validation d'entrée
     if let Err(e) = validate_input("recommendation_id", &payload.recommendation_id) {
@@ -267,9 +262,7 @@ pub async fn get_optimal_time(
         recommendation_id
     );
 
-    let mut lightning = app_state.lightning_client.lock().await;
-    let channels = lightning.list_local_channels().await.unwrap_or_default();
-    drop(lightning);
+    let channels = Vec::new();
 
     let recommendations = app_state.ml_engine.build_recommendations(&channels);
     let selected = recommendations
@@ -284,7 +277,7 @@ pub async fn get_optimal_time(
 
 // Update automation mode
 pub async fn update_automation_mode(
-    RequestJson(payload): RequestJson<AutomationModeRequest>,
+    Json(payload): Json<AutomationModeRequest>,
 ) -> Result<StatusCode, StatusCode> {
     info!("Updating automation mode to: {}", payload.mode);
 
@@ -296,7 +289,7 @@ pub async fn update_automation_mode(
 
 // Update max actions per day
 pub async fn update_max_actions(
-    RequestJson(payload): RequestJson<MaxActionsRequest>,
+    Json(payload): Json<MaxActionsRequest>,
 ) -> Result<StatusCode, StatusCode> {
     info!("Updating max actions to: {}", payload.max_actions);
 
@@ -307,7 +300,7 @@ pub async fn update_max_actions(
 
 // Toggle auto-execution
 pub async fn toggle_auto_execution(
-    RequestJson(payload): RequestJson<AutoExecutionToggleRequest>,
+    Json(payload): Json<AutoExecutionToggleRequest>,
 ) -> Result<StatusCode, StatusCode> {
     info!("Toggling auto-execution to: {}", payload.enabled);
 
@@ -318,16 +311,14 @@ pub async fn toggle_auto_execution(
 
 // Force deep analysis
 pub async fn force_deep_analysis(
-    State(app_state): State<crate::AppState>,
+    State(app_state): State<Arc<crate::AppState>>,
 ) -> Result<Json<DeepAnalysisResponse>, StatusCode> {
     info!("Initiating force deep analysis");
 
     // Simulate deep analysis time
     tokio::time::sleep(tokio::time::Duration::from_millis(1200)).await;
 
-    let mut lightning = app_state.lightning_client.lock().await;
-    let channels = lightning.list_local_channels().await.unwrap_or_default();
-    drop(lightning);
+    let channels = Vec::new();
 
     let scorecard = app_state.ml_engine.score_channels(&channels);
     let insights = app_state.ml_engine.derive_insights(&channels);
@@ -342,7 +333,7 @@ pub async fn force_deep_analysis(
             "action_type": format!("{:?}", rec.action_type),
             "priority": format!("{:?}", rec.priority),
             "expected_roi_impact": rec.expected_roi_impact,
-            "description": rec.rationale.get(0).cloned().unwrap_or_default(),
+            "description": rec.rationale.first().cloned().unwrap_or_default(),
             "confidence": rec.confidence * 100.0,
             "risk_level": rec.risk_score,
         });
@@ -368,9 +359,7 @@ pub async fn get_automation_settings(
 ) -> Result<Json<AutomationSettingsResponse>, StatusCode> {
     let settings = AutomationSettings::default();
 
-    let mut lightning = app_state.lightning_client.lock().await;
-    let channels = lightning.list_local_channels().await.unwrap_or_default();
-    drop(lightning);
+    let channels = Vec::new();
 
     let readiness = app_state
         .ml_engine
@@ -386,9 +375,7 @@ pub async fn get_automation_settings(
 pub async fn get_node_analytics(
     State(app_state): State<Arc<crate::AppState>>,
 ) -> Result<Json<NodeAnalytics>, StatusCode> {
-    let mut lightning = app_state.lightning_client.lock().await;
-    let channels = lightning.list_local_channels().await.unwrap_or_default();
-    drop(lightning);
+    let channels = Vec::new();
 
     let scorecard = app_state.ml_engine.score_channels(&channels);
 

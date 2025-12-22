@@ -8,8 +8,8 @@ use base64::{engine::general_purpose, Engine as _};
 use hmac::{Hmac, Mac};
 use sha2::Sha256;
 use std::time::{SystemTime, UNIX_EPOCH};
-use tracing::warn;
 use subtle::ConstantTimeEq;
+use tracing::warn;
 
 type HmacSha256 = Hmac<Sha256>;
 
@@ -134,7 +134,10 @@ fn validate_token(token: &str) -> Result<(), AuthError> {
     }
 
     // Comparaison constante pour éviter les attaques par timing
-    if provided_signature.ct_eq(expected_signature.as_slice()).into() {
+    if provided_signature
+        .ct_eq(expected_signature.as_slice())
+        .into()
+    {
         Ok(())
     } else {
         Err(AuthError::InvalidToken)
@@ -184,7 +187,7 @@ mod tests {
     fn test_expired_token() {
         // Créer un token avec un timestamp très ancien
         let old_timestamp = 1000000; // Timestamp très ancien
-        let mut mac = HmacSha256::new_from_slice(SECRET_KEY).unwrap();
+        let mut mac = HmacSha256::new_from_slice(&SECRET_KEY).unwrap();
         mac.update(old_timestamp.to_string().as_bytes());
         let signature = hex::encode(mac.finalize().into_bytes());
 

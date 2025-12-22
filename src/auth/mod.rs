@@ -1,5 +1,5 @@
-use anyhow::{Context, Result};
-use argon2::password_hash::{rand_core::OsRng, Error as PasswordHashError, SaltString};
+use anyhow::Result;
+use argon2::password_hash::{rand_core::OsRng, SaltString};
 use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};

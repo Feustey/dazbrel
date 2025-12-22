@@ -12,6 +12,9 @@ use std::{
 };
 use tracing::{debug, warn};
 
+type RateLimitFuture =
+    std::pin::Pin<Box<dyn std::future::Future<Output = Result<Response, StatusCode>> + Send>>;
+
 #[derive(Debug, Clone)]
 pub struct RateLimitEntry {
     count: u32,
@@ -144,13 +147,7 @@ pub async fn rate_limit_middleware_with_state(
 /// Version plus flexible qui prend le state en paramètre
 pub fn create_rate_limit_middleware(
     state: RateLimitState,
-) -> impl Fn(
-    ConnectInfo<SocketAddr>,
-    Request,
-    Next,
-) -> std::pin::Pin<
-    Box<dyn std::future::Future<Output = Result<Response, StatusCode>> + Send>,
-> + Clone {
+) -> impl Fn(ConnectInfo<SocketAddr>, Request, Next) -> RateLimitFuture + Clone {
     move |ConnectInfo(addr): ConnectInfo<SocketAddr>, request: Request, next: Next| {
         let state = state.clone();
         Box::pin(async move {

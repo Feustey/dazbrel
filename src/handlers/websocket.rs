@@ -86,9 +86,15 @@ impl WebSocketState {
     }
 }
 
+impl Default for WebSocketState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 pub async fn websocket_handler(
     ws: WebSocketUpgrade,
-    State(app_state): State<crate::AppState>,
+    State(app_state): State<Arc<crate::AppState>>,
 ) -> Response {
     ws.on_upgrade(move |socket| handle_socket(socket, app_state.ws_state.clone()))
 }

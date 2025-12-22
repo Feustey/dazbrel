@@ -3,7 +3,7 @@
 use serde_json::json;
 use std::time::Duration;
 use uuid::Uuid;
-use wiremock::matchers::{body_json, header, method, path, path_regex};
+use wiremock::matchers::{header, method, path, path_regex};
 use wiremock::{Mock, MockServer, Request, ResponseTemplate};
 
 pub struct MockDaznoApi {
@@ -57,7 +57,12 @@ impl MockDaznoApi {
         Mock::given(method("GET"))
             .and(path_regex(r"/api/v1/recommendations/[0-9a-f]{66}"))
             .respond_with(|req: &Request| {
-                let node_pubkey = req.url.path().split('/').last().unwrap();
+                let _node_pubkey = req
+                    .url
+                    .path()
+                    .split('/')
+                    .next_back()
+                    .unwrap();
 
                 // Generate realistic recommendations based on node pubkey
                 let recommendations = vec![
@@ -320,6 +325,7 @@ impl MockDaznoApi {
     }
 
     // Setup error scenarios for testing
+    #[allow(dead_code)]
     async fn setup_error_scenarios(&self) {
         // Rate limiting simulation
         Mock::given(method("GET"))
@@ -368,6 +374,7 @@ impl MockDaznoApi {
     }
 
     // Setup premium features mock (requires API key)
+    #[allow(dead_code)]
     async fn setup_premium_endpoints(&self) {
         Mock::given(method("GET"))
             .and(path("/api/v1/premium/advanced-analytics"))

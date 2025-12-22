@@ -2,7 +2,6 @@
 
 use std::env;
 use std::sync::Once;
-use tracing_subscriber;
 
 static INIT: Once = Once::new();
 
@@ -206,7 +205,7 @@ pub mod test_utils {
 
 /// Test assertions and validators
 pub mod test_assertions {
-    use dazno_umbrel::api::mcp_client::{ActionType, MCPRecommendation, NodeMetrics, Priority};
+    use dazno_umbrel::api::mcp_client::{ActionType, MCPRecommendation, NodeMetrics};
     use serde_json::Value;
 
     pub fn assert_valid_node_metrics(metrics: &NodeMetrics) {
