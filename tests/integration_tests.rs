@@ -163,7 +163,7 @@ async fn test_full_integration_flow() {
         .await;
 
     println!("Full integration flow test completed");
-    assert!(true); // Test passes if no panics occurred
+    // Test passes if no panics occurred.
 }
 
 #[tokio::test]
@@ -187,9 +187,8 @@ async fn test_error_handling_and_resilience() {
     let mcp_client = MCPClient::new("https://api.dazno.de".to_string(), None);
     let invalid_recommendations = mcp_client.get_recommendations("invalid_pubkey").await;
     // Should either return empty list or error gracefully
-    match invalid_recommendations {
-        Ok(recs) => assert!(recs.is_empty()),
-        Err(_) => {} // Acceptable to error on invalid input
+    if let Ok(recs) = invalid_recommendations {
+        assert!(recs.is_empty());
     }
 
     println!("Error handling test completed");
@@ -303,7 +302,7 @@ async fn test_concurrent_operations() {
 #[cfg(test)]
 mod mock_server_tests {
     use super::*;
-    use wiremock::matchers::{header, method, path};
+    use wiremock::matchers::{method, path};
     use wiremock::{Mock, MockServer, ResponseTemplate};
 
     #[tokio::test]

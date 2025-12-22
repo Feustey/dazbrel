@@ -2,7 +2,7 @@ use axum::{extract::Request, http::StatusCode, middleware::Next, response::Respo
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use tracing::{error, warn};
+use tracing::warn;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum InputValidationError {

@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use axum::{
     extract::State,
     http::StatusCode,
@@ -21,9 +23,7 @@ mod utils;
 use api::local_lightning_client::LocalLightningClient;
 use api::mcp_client::MCPClient;
 use auth::{
-    session::{
-        create_sqlite_session_layer, development_session_config, production_session_config,
-    },
+    session::{create_sqlite_session_layer, development_session_config, production_session_config},
     AuthService,
 };
 use handlers::advanced_api::*;
@@ -37,7 +37,7 @@ use sqlx::SqlitePool;
 use utils::ml_engine::MLEngine;
 
 #[derive(Clone)]
-struct AppState {
+pub struct AppState {
     mcp_client: MCPClient,
     lightning_client: Arc<tokio::sync::Mutex<LocalLightningClient>>,
     handlebars: Arc<Handlebars<'static>>,
@@ -116,15 +116,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let ml_engine = MLEngine::new();
 
-    let app_state = AppState {
+    let app_state = Arc::new(AppState {
         mcp_client,
         lightning_client,
         handlebars,
         ws_state: ws_state.clone(),
-        rate_limiter,
+        rate_limiter: rate_limiter.clone(),
         auth_service,
         ml_engine,
-    };
+    });
 
     // Start real-time updates background task
     let ws_state_clone = ws_state.clone();
@@ -140,7 +140,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let session_layer = create_sqlite_session_layer(db_pool.clone(), session_config).await?;
 
     // Routes publiques (sans authentification)
-    let public_routes = Router::<AppState>::new()
+    let public_routes = Router::<Arc<AppState>>::new()
         .route("/api/health", get(health_check))
         .route("/login", get(auth_routes::login_page))
         .route("/login", post(auth_routes::login_post))
@@ -148,7 +148,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route_layer(axum::middleware::from_fn(public_route_middleware));
 
     // Routes protégées (avec authentification et rate limiting)
-    let protected_routes = Router::<AppState>::new()
+    let protected_routes = Router::<Arc<AppState>>::new()
         // Main pages
         .route("/", get(dashboard_handler))
         // Auth routes pour utilisateurs connectés
@@ -206,7 +206,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             rate_limit_middleware_with_state,
         ));
 
-    let app = Router::<AppState>::new()
+    let app = Router::<Arc<AppState>>::new()
         .merge(public_routes)
         .merge(protected_routes)
         .layer(session_layer)
@@ -287,7 +287,7 @@ fn mock_metrics_context() -> serde_json::Value {
 }
 
 async fn dashboard_handler(
-    State(app_state): State<AppState>,
+    State(app_state): State<Arc<AppState>>,
 ) -> Result<Html<String>, StatusCode> {
     let context = json!({
         "connection_status": "connected",
@@ -310,7 +310,7 @@ async fn dashboard_handler(
 }
 
 async fn superior_dashboard_handler(
-    State(app_state): State<AppState>,
+    State(app_state): State<Arc<AppState>>,
 ) -> Result<Html<String>, StatusCode> {
     let context = json!({
         "performance_advantage": 15.3,
@@ -384,7 +384,7 @@ async fn superior_dashboard_handler(
 }
 
 async fn recommendations_page_handler(
-    State(app_state): State<AppState>,
+    State(app_state): State<Arc<AppState>>,
 ) -> Result<Html<String>, StatusCode> {
     let context = json!({
         "connection_status": "connected",
@@ -405,7 +405,7 @@ async fn recommendations_page_handler(
 }
 
 async fn history_page_handler(
-    State(app_state): State<AppState>,
+    State(app_state): State<Arc<AppState>>,
 ) -> Result<Html<String>, StatusCode> {
     let context = json!({
         "connection_status": "connected",
@@ -444,7 +444,7 @@ async fn history_page_handler(
 }
 
 async fn settings_page_handler(
-    State(app_state): State<AppState>,
+    State(app_state): State<Arc<AppState>>,
 ) -> Result<Html<String>, StatusCode> {
     let context = json!({
         "connection_status": "connected",
