@@ -7,6 +7,7 @@ set -e
 
 UMBREL_IP=${1:-"192.168.0.29"}
 UMBREL_HOST="umbrey2@${UMBREL_IP}"
+SSH_OPTS="-o BatchMode=yes -o StrictHostKeyChecking=no"
 
 echo "🎯 Configuration Dazno pour Umbrel sur ${UMBREL_IP}"
 echo "=================================="
@@ -25,13 +26,50 @@ else
     exit 1
 fi
 
+check_required_apps() {
+    echo "🛠 Vérification des applications Umbrel requises..."
+
+    local missing_apps=()
+    local apps=(
+        "bitcoin:Bitcoin Core"
+        "lightning:Lightning Node (LND)"
+        "lightning-terminal:Lightning Terminal"
+        "electrs:Electrs"
+    )
+
+    for app in "${apps[@]}"; do
+        IFS=":" read -r folder label <<< "${app}"
+        if ssh ${SSH_OPTS} ${UMBREL_HOST} "test -d /home/umbrel/umbrel/app-data/${folder}" > /dev/null 2>&1; then
+            echo "✅ ${label} détecté"
+        else
+            echo "❌ ${label} manquant sur Umbrel"
+            missing_apps+=("${label}")
+        fi
+    done
+
+    if [ ${#missing_apps[@]} -gt 0 ]; then
+        echo ""
+        echo "Les applications suivantes doivent être installées depuis l'App Store Umbrel avant de continuer :"
+        for app in "${missing_apps[@]}"; do
+            echo "  - ${app}"
+        done
+        echo ""
+        echo "Installez-les puis relancez ce script."
+        exit 1
+    fi
+
+    echo "✅ Toutes les applications Umbrel requises sont présentes"
+}
+
+check_required_apps
+
 # Fonction pour copier les certificats
 copy_credentials() {
     echo "📋 Copie des certificats LND depuis Umbrel..."
     
     # Copier le certificat TLS
     echo "  → Copie du certificat TLS..."
-    scp ${UMBREL_HOST}:/home/umbrel/umbrel/app-data/lightning/data/lnd/tls.cert ./lnd-credentials/ || {
+    scp ${SSH_OPTS} ${UMBREL_HOST}:/home/umbrel/umbrel/app-data/lightning/data/lnd/tls.cert ./lnd-credentials/ || {
         echo "❌ Erreur lors de la copie du certificat TLS"
         echo "Vérifiez que vous avez accès SSH à Umbrel"
         exit 1
@@ -39,7 +77,7 @@ copy_credentials() {
     
     # Copier le macaroon admin
     echo "  → Copie du macaroon admin..."
-    scp ${UMBREL_HOST}:/home/umbrel/umbrel/app-data/lightning/data/lnd/data/chain/bitcoin/mainnet/admin.macaroon ./lnd-credentials/ || {
+    scp ${SSH_OPTS} ${UMBREL_HOST}:/home/umbrel/umbrel/app-data/lightning/data/lnd/data/chain/bitcoin/mainnet/admin.macaroon ./lnd-credentials/ || {
         echo "❌ Erreur lors de la copie du macaroon admin"
         echo "Vérifiez les chemins et permissions sur Umbrel"
         exit 1
@@ -47,7 +85,7 @@ copy_credentials() {
     
     # Optionnel : Copier le macaroon readonly (plus sécurisé)
     echo "  → Copie du macaroon readonly (optionnel)..."
-    scp ${UMBREL_HOST}:/home/umbrel/umbrel/app-data/lightning/data/lnd/data/chain/bitcoin/mainnet/readonly.macaroon ./lnd-credentials/ 2>/dev/null || {
+    scp ${SSH_OPTS} ${UMBREL_HOST}:/home/umbrel/umbrel/app-data/lightning/data/lnd/data/chain/bitcoin/mainnet/readonly.macaroon ./lnd-credentials/ 2>/dev/null || {
         echo "⚠️  Macaroon readonly non trouvé (normal sur certaines versions)"
     }
     

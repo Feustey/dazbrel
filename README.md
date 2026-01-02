@@ -90,6 +90,8 @@ cargo run
 - **Electrs** : Serveur Electrum pour données blockchain
 - **Bitcoin Node** : Nœud Bitcoin principal
 
+> Assurez-vous que ces applications sont installées sur votre Umbrel avant d'utiliser Dazno. Le script `setup-umbrel.sh` vérifie automatiquement leur présence et vous demandera de les installer si nécessaire.
+
 ### Ressources Système
 - **RAM** : 512MB minimum, 1GB recommandé
 - **Storage** : 100MB pour l'application + logs
