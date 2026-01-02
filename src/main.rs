@@ -34,6 +34,7 @@ use middleware::{
 };
 use routes::auth as auth_routes;
 use sqlx::SqlitePool;
+use utils::config::AppConfig;
 use utils::ml_engine::MLEngine;
 
 #[derive(Clone)]
@@ -45,6 +46,7 @@ pub struct AppState {
     rate_limiter: RateLimitState,
     auth_service: AuthService,
     ml_engine: MLEngine,
+    config: AppConfig,
 }
 
 #[tokio::main]
@@ -89,9 +91,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     handlebars.register_template_file("change-password", "templates/change-password.html")?;
     let handlebars = Arc::new(handlebars);
 
-    let mcp_api_url =
-        std::env::var("MCP_API_URL").unwrap_or_else(|_| "https://api.dazno.de".to_string());
-    let mcp_client = MCPClient::new(mcp_api_url, None);
+    let config = AppConfig::from_env();
+    let mcp_client = MCPClient::new(config.mcp_api_url.clone(), config.mcp_api_key.clone());
 
     info!("Initializing Local Lightning Client for Umbrel integration");
     let lightning_client = match LocalLightningClient::new().await {
@@ -124,6 +125,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         rate_limiter: rate_limiter.clone(),
         auth_service,
         ml_engine,
+        config: config.clone(),
     });
 
     // Start real-time updates background task
@@ -448,7 +450,7 @@ async fn settings_page_handler(
 ) -> Result<Html<String>, StatusCode> {
     let context = json!({
         "connection_status": "connected",
-        "mcp_api_url": "https://api.dazno.de",
+        "mcp_api_url": app_state.config.mcp_api_url.clone(),
         "polling_interval": 60,
         "max_channel_size": 5000000,
         "auto_approve_enabled": true,

@@ -33,4 +33,5 @@ pub struct AppState {
     pub handlebars: Arc<Handlebars<'static>>,
     pub ws_state: Arc<handlers::websocket::WebSocketState>,
     pub ml_engine: MLEngine,
+    pub config: AppConfig,
 }
