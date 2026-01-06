@@ -55,7 +55,7 @@ impl MockDaznoApi {
 
     async fn setup_recommendations_endpoint(&self) {
         Mock::given(method("GET"))
-            .and(path_regex(r"/api/v1/recommendations/[0-9a-f]{66}"))
+            .and(path_regex(r"/api/v1/recommendations/[0-9a-f]{66,68}"))
             .respond_with(|req: &Request| {
                 let _node_pubkey = req
                     .url
@@ -143,7 +143,7 @@ impl MockDaznoApi {
 
     async fn setup_performance_analysis_endpoint(&self) {
         Mock::given(method("GET"))
-            .and(path_regex(r"/api/v1/analysis/[0-9a-f]{66}/performance"))
+            .and(path_regex(r"/api/v1/analysis/[0-9a-f]{66,68}/performance"))
             .respond_with(|req: &Request| {
                 let node_pubkey = req.url.path().split('/').nth(3).unwrap();
                 let query_params: std::collections::HashMap<_, _> = req.url.query_pairs().collect();
@@ -434,7 +434,7 @@ mod tests {
         let mock_api = MockDaznoApi::start().await;
         let client = MCPClient::new(mock_api.base_url, None);
 
-        let node_pubkey = "02a1b2c3d4e5f6789abcdef123456789abcdef123456789abcdef123456789abcdef";
+        let node_pubkey = "02a1b2c3d4e5f6789abcdef123456789abcdef123456789abcdef123456789abcd";
         let recommendations = client.get_recommendations(node_pubkey).await.unwrap();
 
         assert_eq!(recommendations.len(), 3);
@@ -449,7 +449,7 @@ mod tests {
         let mock_api = MockDaznoApi::start().await;
         let client = MCPClient::new(mock_api.base_url, None);
 
-        let node_pubkey = "02a1b2c3d4e5f6789abcdef123456789abcdef123456789abcdef123456789abcdef";
+        let node_pubkey = "02a1b2c3d4e5f6789abcdef123456789abcdef123456789abcdef123456789abcd";
         let analysis = client
             .get_performance_analysis(node_pubkey, 30)
             .await

@@ -101,7 +101,7 @@ echo ""
 echo "📋 5. Vérification des hardcoded credentials"
 
 echo "   Checking for hardcoded credentials in source..."
-if grep -r "02a1b2c3d4e5f6789abcdef123456789abcdef123456789abcdef123456789abcdef" src/ 2>/dev/null; then
+if grep -r "02a1b2c3d4e5f6789abcdef123456789abcdef123456789abcdef123456789abcd" src/ 2>/dev/null; then
     print_result 1 "FAILLE: Hardcoded pubkey trouvée dans le code source"
 else
     print_result 0 "Aucune hardcoded pubkey détectée"

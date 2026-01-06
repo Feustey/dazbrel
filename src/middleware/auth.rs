@@ -2,7 +2,7 @@ use axum::{
     extract::Request,
     http::{HeaderMap, StatusCode},
     middleware::Next,
-    response::Response,
+    response::{IntoResponse, Response},
 };
 use base64::{engine::general_purpose, Engine as _};
 use hmac::{Hmac, Mac};
@@ -60,6 +60,8 @@ pub async fn auth_middleware(
     request: Request,
     next: Next,
 ) -> Result<Response, StatusCode> {
+    let path = request.uri().path().to_string();
+
     // Extraire le token d'authentification
     let auth_header = headers
         .get("Authorization")
@@ -69,24 +71,36 @@ pub async fn auth_middleware(
         Some(header) => header,
         None => {
             warn!("Missing authorization header");
-            return Err(StatusCode::UNAUTHORIZED);
+            return Ok(unauthorized_response(&path));
         }
     };
 
     if !auth_header.starts_with("Bearer ") {
         warn!("Invalid authorization header format");
-        return Err(StatusCode::UNAUTHORIZED);
+        return Ok(unauthorized_response(&path));
     }
 
     let token = &auth_header[7..]; // Retirer "Bearer "
 
     if let Err(auth_error) = validate_token(token) {
         warn!("Authentication failed: {:?}", auth_error);
-        return Err(StatusCode::UNAUTHORIZED);
+        return Ok(unauthorized_response(&path));
     }
 
     // Token valide, continuer
     Ok(next.run(request).await)
+}
+
+fn unauthorized_response(path: &str) -> Response {
+    if should_redirect_to_login(path) {
+        axum::response::Redirect::to("/login").into_response()
+    } else {
+        StatusCode::UNAUTHORIZED.into_response()
+    }
+}
+
+fn should_redirect_to_login(path: &str) -> bool {
+    !path.starts_with("/api") && !path.starts_with("/ws")
 }
 
 fn validate_token(token: &str) -> Result<(), AuthError> {
@@ -198,5 +212,26 @@ mod tests {
             validate_token(&token),
             Err(AuthError::ExpiredToken)
         ));
+    }
+
+    #[test]
+    fn redirects_html_requests_to_login() {
+        let response = unauthorized_response("/dashboard");
+
+        assert_eq!(response.status(), StatusCode::SEE_OTHER);
+        assert_eq!(
+            response
+                .headers()
+                .get(axum::http::header::LOCATION)
+                .and_then(|value| value.to_str().ok()),
+            Some("/login")
+        );
+    }
+
+    #[test]
+    fn api_requests_get_unauthorized_status() {
+        let response = unauthorized_response("/api/metrics");
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
     }
 }

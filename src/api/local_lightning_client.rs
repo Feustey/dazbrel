@@ -160,7 +160,7 @@ impl LocalLightningClient {
             Err(e) => {
                 warn!("Failed to connect to LND, using mock data: {}", e);
                 Ok(LocalNodeInfo {
-                    pubkey: "02a1b2c3d4e5f6789abcdef123456789abcdef123456789abcdef123456789abcdef"
+                    pubkey: "02a1b2c3d4e5f6789abcdef123456789abcdef123456789abcdef123456789abcd"
                         .to_string(),
                     alias: "Dazno Umbrel Node (Mock)".to_string(),
                     num_channels: 8,

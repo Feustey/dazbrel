@@ -255,7 +255,7 @@ mod tests {
 
     #[test]
     fn test_valid_pubkey() {
-        let valid_pubkey = "02a1b2c3d4e5f6789abcdef123456789abcdef123456789abcdef123456789abcdef";
+        let valid_pubkey = "02a1b2c3d4e5f6789abcdef123456789abcdef123456789abcdef123456789abcd";
         assert!(validate_input("pubkey", valid_pubkey).is_ok());
     }
 
@@ -264,7 +264,7 @@ mod tests {
         assert!(validate_input("pubkey", "short").is_err());
         assert!(validate_input(
             "pubkey",
-            "02a1b2c3d4e5f6789abcdef123456789abcdef123456789abcdef123456789abcdefff"
+            "02a1b2c3d4e5f6789abcdef123456789abcdef123456789abcdef123456789abcdfff"
         )
         .is_err()); // Too long
         assert!(validate_input(
