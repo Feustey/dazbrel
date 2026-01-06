@@ -27,8 +27,8 @@ impl Default for TestConfig {
     fn default() -> Self {
         Self {
             mock_api_url: "http://localhost:8080".to_string(),
-            test_node_pubkey:
-                "02a1b2c3d4e5f6789abcdef123456789abcdef123456789abcdef123456789abcdef".to_string(),
+            test_node_pubkey: "02a1b2c3d4e5f6789abcdef123456789abcdef123456789abcdef123456789abcd"
+                .to_string(),
             test_api_key: env::var("DAZNO_TEST_API_KEY").ok(),
             enable_real_api_tests: env::var("ENABLE_REAL_API_TESTS").is_ok(),
         }
@@ -74,7 +74,7 @@ pub mod test_data {
         }
 
         NodeMetrics {
-            pubkey: "02a1b2c3d4e5f6789abcdef123456789abcdef123456789abcdef123456789abcdef"
+            pubkey: "02a1b2c3d4e5f6789abcdef123456789abcdef123456789abcdef123456789abcd"
                 .to_string(),
             alias: format!("Test Node with {} channels", channel_count),
             channels,
@@ -121,7 +121,7 @@ pub mod test_data {
 
     pub fn create_performance_analysis_json() -> serde_json::Value {
         json!({
-            "node_pubkey": "02a1b2c3d4e5f6789abcdef123456789abcdef123456789abcdef123456789abcdef",
+            "node_pubkey": "02a1b2c3d4e5f6789abcdef123456789abcdef123456789abcdef123456789abcd",
             "analysis_period_days": 30,
             "generated_at": "2024-01-15T10:35:00Z",
             "performance_metrics": {
@@ -372,7 +372,7 @@ mod tests {
         assert!(pubkey.starts_with("02"));
 
         assert!(is_valid_pubkey(
-            "02a1b2c3d4e5f6789abcdef123456789abcdef123456789abcdef123456789abcdef"
+            "02a1b2c3d4e5f6789abcdef123456789abcdef123456789abcdef123456789abcd"
         ));
         assert!(is_valid_pubkey(
             "03a1b2c3d4e5f6789abcdef123456789abcdef123456789abcdef123456789abcdef"

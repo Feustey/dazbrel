@@ -19,7 +19,7 @@ async fn test_mcp_integration_workflow() {
 
     // 3. Create mock node metrics as would be collected from Lightning client
     let mock_metrics = NodeMetrics {
-        pubkey: "02a1b2c3d4e5f6789abcdef123456789abcdef123456789abcdef123456789abcdef".to_string(),
+        pubkey: "02a1b2c3d4e5f6789abcdef123456789abcdef123456789abcdef123456789abcd".to_string(),
         alias: "Integration Test Node".to_string(),
         channels: vec![
             ChannelMetrics {
@@ -58,7 +58,7 @@ async fn test_mcp_integration_workflow() {
     println!("Metrics submission result: {:?}", metrics_result);
 
     // 5. Test getting recommendations (will fail but shows structure)
-    let node_pubkey = "02a1b2c3d4e5f6789abcdef123456789abcdef123456789abcdef123456789abcdef";
+    let node_pubkey = "02a1b2c3d4e5f6789abcdef123456789abcdef123456789abcdef123456789abcd";
     let recommendations_result = mcp_client.get_recommendations(node_pubkey).await;
     println!("Recommendations result: {:?}", recommendations_result);
 
@@ -253,7 +253,7 @@ async fn test_concurrent_operations() {
     // Test that multiple operations can run concurrently without issues
 
     let mcp_client = MCPClient::new("https://api.dazno.de".to_string(), None);
-    let node_pubkey = "02a1b2c3d4e5f6789abcdef123456789abcdef123456789abcdef123456789abcdef";
+    let node_pubkey = "02a1b2c3d4e5f6789abcdef123456789abcdef123456789abcdef123456789abcd";
 
     // Create multiple concurrent tasks
     let health_check_task = tokio::spawn({
@@ -328,7 +328,7 @@ mod mock_server_tests {
             .await;
 
         // Recommendations endpoint with realistic data
-        let node_pubkey = "02a1b2c3d4e5f6789abcdef123456789abcdef123456789abcdef123456789abcdef";
+        let node_pubkey = "02a1b2c3d4e5f6789abcdef123456789abcdef123456789abcdef123456789abcd";
         Mock::given(method("GET"))
             .and(path(format!("/api/v1/recommendations/{}", node_pubkey)))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!([
