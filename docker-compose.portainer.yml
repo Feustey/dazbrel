@@ -1,0 +1,31 @@
+version: "3.8"
+
+services:
+  dazno:
+    build: .
+    container_name: dazno-umbrel
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      MCP_API_URL: ${MCP_API_URL:-https://api.dazno.de}
+      MCP_API_KEY: ${MCP_API_KEY:-}
+      LND_HOST: ${LND_HOST:-umbrel.local}
+      LND_GRPC_PORT: ${LND_GRPC_PORT:-10009}
+      LND_PORT: ${LND_PORT:-10009}
+      LND_REST_PORT: ${LND_REST_PORT:-8080}
+      LIGHTNING_TERMINAL_URL: ${LIGHTNING_TERMINAL_URL:-http://lightning-terminal_web_1:3004}
+      ELECTRS_URL: ${ELECTRS_URL:-http://electrs_web_1:3002}
+      BITCOIN_RPC_URL: ${BITCOIN_RPC_URL:-http://bitcoin_bitcoind_1:8332}
+      LND_MACAROON_PATH: /lnd/data/chain/bitcoin/mainnet/admin.macaroon
+      LND_TLS_CERT_PATH: /lnd/tls.cert
+      BITCOIN_RPC_USER: ${BITCOIN_RPC_USER}
+      BITCOIN_RPC_PASS: ${BITCOIN_RPC_PASS}
+    volumes:
+      - ${LND_DATA_DIR}:/lnd:ro
+      - ${BITCOIN_DATA_DIR}:/bitcoin:ro
+      - dazno-data:/app/data
+
+volumes:
+  dazno-data:
+    driver: local

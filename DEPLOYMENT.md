@@ -132,6 +132,39 @@ Le fichier `umbrel-app.yml` est déjà configuré pour :
 - Port : 3000
 - Catégorie : Lightning
 
+## Configuration Portainer (installation locale)
+
+Le fichier `docker-compose.portainer.yml` est prêt pour un déploiement via Portainer.
+
+### 1. Variables à renseigner dans Portainer
+
+Dans l’onglet **Env** (ou via un fichier `.env`), définissez au minimum :
+
+```bash
+# Chemins hôte vers vos données Umbrel/Bitcoin
+LND_DATA_DIR=/home/umbrel/umbrel/app-data/lightning/data/lnd
+BITCOIN_DATA_DIR=/home/umbrel/umbrel/app-data/bitcoin/data/bitcoin
+
+# Identifiants RPC Bitcoin (si requis par votre nœud)
+BITCOIN_RPC_USER=bitcoinrpc
+BITCOIN_RPC_PASS=change_me
+
+# Optionnel
+MCP_API_URL=https://api.dazno.de
+MCP_API_KEY=
+LND_HOST=umbrel.local
+```
+
+### 2. Stack Portainer
+
+Copiez-collez le contenu de `docker-compose.portainer.yml` dans **Stacks** puis déployez.
+
+L’application sera disponible sur :
+
+```
+http://<ip_du_serveur>:3000
+```
+
 ### Phase 5 : Sécurité et bonnes pratiques
 
 #### 1. Utilisation du macaroon readonly (recommandé)
