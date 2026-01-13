@@ -3,7 +3,9 @@ FROM rust:1.82 as builder
 
 WORKDIR /app
 
-ENV CARGO_BUILD_JOBS=1
+ENV CARGO_BUILD_JOBS=1 \
+    CARGO_PROFILE_RELEASE_CODEGEN_UNITS=1 \
+    CARGO_PROFILE_RELEASE_DEBUG=0
 
 RUN apt-get update && apt-get install -y \
     libssl-dev \
