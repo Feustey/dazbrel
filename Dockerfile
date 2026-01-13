@@ -1,5 +1,5 @@
 # Multi-stage build pour optimiser la taille
-FROM rust:1.75 as builder
+FROM rust:1.82 as builder
 
 WORKDIR /app
 
