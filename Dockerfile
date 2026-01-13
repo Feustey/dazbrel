@@ -1,24 +1,21 @@
 # Multi-stage build pour optimiser la taille
-FROM rust:1.75-slim as builder
+FROM rust:1.82 as builder
 
 WORKDIR /app
 
+ENV CARGO_BUILD_JOBS=1 \
+    CARGO_PROFILE_RELEASE_CODEGEN_UNITS=1 \
+    CARGO_PROFILE_RELEASE_DEBUG=0
+
 RUN apt-get update && apt-get install -y \
-    pkg-config \
     libssl-dev \
+    libsqlite3-dev \
+    protobuf-compiler \
+    pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
-COPY Cargo.toml Cargo.lock ./
-RUN mkdir src && echo "fn main() {}" > src/main.rs
-RUN --mount=type=cache,target=/usr/local/cargo/registry \
-    --mount=type=cache,target=/app/target \
-    cargo build --release
-RUN rm -rf src
-
-COPY src/ ./src/
-RUN --mount=type=cache,target=/usr/local/cargo/registry \
-    --mount=type=cache,target=/app/target \
-    cargo build --release
+COPY . .
+RUN cargo build --release -j 1
 
 FROM debian:bookworm-slim
 
