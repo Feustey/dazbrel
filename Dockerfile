@@ -3,6 +3,8 @@ FROM rust:1.82 as builder
 
 WORKDIR /app
 
+ENV CARGO_BUILD_JOBS=1
+
 RUN apt-get update && apt-get install -y \
     libssl-dev \
     libsqlite3-dev \
@@ -11,7 +13,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 COPY . .
-RUN cargo build --release
+RUN cargo build --release -j 1
 
 FROM debian:bookworm-slim
 
