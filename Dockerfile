@@ -7,19 +7,11 @@ RUN apt-get update && apt-get install -y \
     libssl-dev \
     libsqlite3-dev \
     protobuf-compiler \
+    pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
-COPY Cargo.toml Cargo.lock ./
-RUN mkdir src && echo "fn main() {}" > src/main.rs
-RUN --mount=type=cache,target=/usr/local/cargo/registry \
-    --mount=type=cache,target=/app/target \
-    cargo build --release
-RUN rm -rf src
-
-COPY src/ ./src/
-RUN --mount=type=cache,target=/usr/local/cargo/registry \
-    --mount=type=cache,target=/app/target \
-    cargo build --release
+COPY . .
+RUN cargo build --release
 
 FROM debian:bookworm-slim
 
